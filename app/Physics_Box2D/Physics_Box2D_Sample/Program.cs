@@ -1,9 +1,6 @@
 using Physics_Box2D;
 using System.Numerics;
 using Raylib_cs;
-using Box2D.NET;
-using static Box2D.NET.B2Bodies;
-using static Box2D.NET.B2Geometries;
 
 namespace Physics_Box2D_Sample;
 
@@ -19,7 +16,7 @@ public class Program
     private const float TimeStep = 1.0f / 60.0f;
 
     private static PhysicsWorld? _world;
-    private static List<PhysicsObject> _objects = new();
+    private static List<VisualBody> _visualBodies = new();
     private static bool _isPaused = false;
 
     public static void Main(string[] args)
@@ -45,18 +42,18 @@ public class Program
     private static void InitializePhysicsWorld()
     {
         _world = new PhysicsWorld(new Vector2(0, -10));
-        _objects.Clear();
+        _visualBodies.Clear();
 
         // 지면 생성
-        _world.CreateStaticBox("ground", new Vector2(0, -8), 30, 1);
-        _objects.Add(new PhysicsObject("ground", ObjectType.Box, 30, 1, Color.Gray));
+        var ground = _world.CreateStaticBox("ground", new Vector2(0, -8), 30, 1);
+        _visualBodies.Add(new VisualBody(ground, Color.Gray));
 
         // 좌우 벽 생성
-        _world.CreateStaticBox("leftWall", new Vector2(-16, 0), 1, 20);
-        _objects.Add(new PhysicsObject("leftWall", ObjectType.Box, 1, 20, Color.Gray));
+        var leftWall = _world.CreateStaticBox("leftWall", new Vector2(-16, 0), 1, 20);
+        _visualBodies.Add(new VisualBody(leftWall, Color.Gray));
 
-        _world.CreateStaticBox("rightWall", new Vector2(16, 0), 1, 20);
-        _objects.Add(new PhysicsObject("rightWall", ObjectType.Box, 1, 20, Color.Gray));
+        var rightWall = _world.CreateStaticBox("rightWall", new Vector2(16, 0), 1, 20);
+        _visualBodies.Add(new VisualBody(rightWall, Color.Gray));
 
         // 동적 박스들 생성
         Random rand = new Random();
@@ -67,7 +64,7 @@ public class Program
             float size = rand.NextSingle() * 0.8f + 0.5f;
             
             string id = $"box{i}";
-            _world.CreateDynamicBox(id, new Vector2(x, y), size, size, restitution: 0.3f);
+            var box = _world.CreateDynamicBox(id, new Vector2(x, y), size, size, restitution: 0.3f);
             
             Color color = new Color(
                 rand.Next(100, 255),
@@ -75,7 +72,7 @@ public class Program
                 rand.Next(100, 255),
                 255
             );
-            _objects.Add(new PhysicsObject(id, ObjectType.Box, size, size, color));
+            _visualBodies.Add(new VisualBody(box, color));
         }
 
         // 동적 원들 생성
@@ -86,7 +83,7 @@ public class Program
             float radius = rand.NextSingle() * 0.5f + 0.3f;
             
             string id = $"circle{i}";
-            _world.CreateDynamicCircle(id, new Vector2(x, y), radius, restitution: 0.6f);
+            var circle = _world.CreateDynamicCircle(id, new Vector2(x, y), radius, restitution: 0.6f);
             
             Color color = new Color(
                 rand.Next(100, 255),
@@ -94,7 +91,7 @@ public class Program
                 rand.Next(100, 255),
                 255
             );
-            _objects.Add(new PhysicsObject(id, ObjectType.Circle, radius * 2, radius * 2, color));
+            _visualBodies.Add(new VisualBody(circle, color));
         }
     }
 
@@ -119,16 +116,19 @@ public class Program
             float y = 15;
             float size = rand.NextSingle() * 0.8f + 0.5f;
             
-            string id = $"box{_objects.Count}";
-            _world?.CreateDynamicBox(id, new Vector2(x, y), size, size, restitution: 0.3f);
+            string id = $"box{_visualBodies.Count}";
+            var box = _world?.CreateDynamicBox(id, new Vector2(x, y), size, size, restitution: 0.3f);
             
-            Color color = new Color(
-                rand.Next(100, 255),
-                rand.Next(100, 255),
-                rand.Next(100, 255),
-                255
-            );
-            _objects.Add(new PhysicsObject(id, ObjectType.Box, size, size, color));
+            if (box != null)
+            {
+                Color color = new Color(
+                    rand.Next(100, 255),
+                    rand.Next(100, 255),
+                    rand.Next(100, 255),
+                    255
+                );
+                _visualBodies.Add(new VisualBody(box, color));
+            }
         }
 
         if (Raylib.IsKeyPressed(KeyboardKey.C))
@@ -139,16 +139,19 @@ public class Program
             float y = 15;
             float radius = rand.NextSingle() * 0.5f + 0.3f;
             
-            string id = $"circle{_objects.Count}";
-            _world?.CreateDynamicCircle(id, new Vector2(x, y), radius, restitution: 0.6f);
+            string id = $"circle{_visualBodies.Count}";
+            var circle = _world?.CreateDynamicCircle(id, new Vector2(x, y), radius, restitution: 0.6f);
             
-            Color color = new Color(
-                rand.Next(100, 255),
-                rand.Next(100, 255),
-                rand.Next(100, 255),
-                255
-            );
-            _objects.Add(new PhysicsObject(id, ObjectType.Circle, radius * 2, radius * 2, color));
+            if (circle != null)
+            {
+                Color color = new Color(
+                    rand.Next(100, 255),
+                    rand.Next(100, 255),
+                    rand.Next(100, 255),
+                    255
+                );
+                _visualBodies.Add(new VisualBody(circle, color));
+            }
         }
 
         // 마우스로 물체에 힘 적용
@@ -157,19 +160,16 @@ public class Program
             Vector2 mousePos = Raylib.GetMousePosition();
             Vector2 worldPos = ScreenToWorld(mousePos);
 
-            foreach (var obj in _objects)
+            foreach (var visualBody in _visualBodies)
             {
-                if (obj.Id.StartsWith("box") || obj.Id.StartsWith("circle"))
+                var body = visualBody.Body;
+                float distance = Vector2.Distance(worldPos, body.Position);
+                
+                if (distance < 2.0f)
                 {
-                    Vector2 bodyPos = _world?.GetPosition(obj.Id) ?? Vector2.Zero;
-                    float distance = Vector2.Distance(worldPos, bodyPos);
-                    
-                    if (distance < 2.0f)
-                    {
-                        Vector2 force = (worldPos - bodyPos) * 50.0f;
-                        _world?.ApplyForceToCenter(obj.Id, force);
-                        break;
-                    }
+                    Vector2 force = (worldPos - body.Position) * 50.0f;
+                    body.ApplyForceToCenter(force);
+                    break;
                 }
             }
         }
@@ -187,54 +187,69 @@ public class Program
         Raylib.ClearBackground(new Color(30, 30, 40, 255));
 
         // 물리 객체 그리기
-        if (_world != null)
+        foreach (var visualBody in _visualBodies)
         {
-            foreach (var obj in _objects)
-            {
-                Vector2 pos = _world.GetPosition(obj.Id);
-                float angle = _world.GetAngle(obj.Id);
-                
-                Vector2 screenPos = WorldToScreen(pos);
+            var body = visualBody.Body;
+            Vector2 pos = body.Position;
+            float angle = body.Angle;
+            Vector2 screenPos = WorldToScreen(pos);
 
-                if (obj.Type == ObjectType.Box)
-                {
-                    float width = obj.Width * PixelsPerMeter;
-                    float height = obj.Height * PixelsPerMeter;
-                    
-                    // 회전을 고려한 사각형 그리기
-                    var rectangle = new Rectangle(
-                        screenPos.X,
-                        screenPos.Y,
-                        width,
-                        height
-                    );
-                    
-                    Vector2 origin = new Vector2(width / 2, height / 2);
-                    float angleDeg = angle * (180.0f / MathF.PI);
-                    
-                    Raylib.DrawRectanglePro(rectangle, origin, angleDeg, obj.Color);
-                    //Raylib.DrawRectangleLinesEx(rectangle, 2, Color.Black);
-                }
-                else if (obj.Type == ObjectType.Circle)
-                {
-                    float radius = obj.Width / 2 * PixelsPerMeter;
-                    Raylib.DrawCircleV(screenPos, radius, obj.Color);
-                    Raylib.DrawCircleLinesV(screenPos, radius, Color.Black);
-                    
-                    // 회전 표시를 위한 선
-                    Vector2 lineEnd = new Vector2(
-                        screenPos.X + radius * MathF.Cos(angle),
-                        screenPos.Y + radius * MathF.Sin(angle)
-                    );
-                    Raylib.DrawLineEx(screenPos, lineEnd, 2, Color.Black);
-                }
+            if (body is PhysicsBox box)
+            {
+                float width = box.Width * PixelsPerMeter;
+                float height = box.Height * PixelsPerMeter;
+                
+                // 회전을 고려한 사각형 그리기
+                var rectangle = new Rectangle(
+                    screenPos.X,
+                    screenPos.Y,
+                    width,
+                    height
+                );
+                
+                Vector2 origin = new Vector2(width / 2, height / 2);
+                float angleDeg = angle * (180.0f / MathF.PI);
+                
+                Raylib.DrawRectanglePro(rectangle, origin, angleDeg, visualBody.Color);
+                Raylib.DrawRectangleLinesEx(rectangle, 2, Color.Black);
+            }
+            else if (body is PhysicsCircle circle)
+            {
+                float radius = circle.Radius * PixelsPerMeter;
+                Raylib.DrawCircleV(screenPos, radius, visualBody.Color);
+                Raylib.DrawCircleLinesV(screenPos, radius, Color.Black);
+                
+                // 회전 표시를 위한 선
+                Vector2 lineEnd = new Vector2(
+                    screenPos.X + radius * MathF.Cos(angle),
+                    screenPos.Y + radius * MathF.Sin(angle)
+                );
+                Raylib.DrawLineEx(screenPos, lineEnd, 2, Color.Black);
+            }
+            else if (body is PhysicsStaticBox staticBox)
+            {
+                float width = staticBox.Width * PixelsPerMeter;
+                float height = staticBox.Height * PixelsPerMeter;
+                
+                var rectangle = new Rectangle(
+                    screenPos.X,
+                    screenPos.Y,
+                    width,
+                    height
+                );
+                
+                Vector2 origin = new Vector2(width / 2, height / 2);
+                float angleDeg = angle * (180.0f / MathF.PI);
+                
+                Raylib.DrawRectanglePro(rectangle, origin, angleDeg, visualBody.Color);
+                Raylib.DrawRectangleLinesEx(rectangle, 2, Color.Black);
             }
         }
 
         // UI 텍스트 그리기
         Raylib.DrawText("Physics_Box2D Sample", 10, 10, 24, Color.White);
         Raylib.DrawText($"FPS: {Raylib.GetFPS()}", 10, 40, 20, Color.LightGray);
-        Raylib.DrawText($"Objects: {_objects.Count}", 10, 65, 20, Color.LightGray);
+        Raylib.DrawText($"Objects: {_visualBodies.Count}", 10, 65, 20, Color.LightGray);
         Raylib.DrawText(_isPaused ? "PAUSED" : "RUNNING", 10, 90, 20, _isPaused ? Color.Yellow : Color.Green);
         
         Raylib.DrawText("Controls:", 10, ScreenHeight - 150, 18, Color.White);
@@ -264,11 +279,8 @@ public class Program
         );
     }
 
-    private enum ObjectType
-    {
-        Box,
-        Circle
-    }
-
-    private record PhysicsObject(string Id, ObjectType Type, float Width, float Height, Color Color);
+    /// <summary>
+    /// 물리 바디와 시각적 표현을 연결하는 클래스
+    /// </summary>
+    private record VisualBody(IPhysicsBody Body, Color Color);
 }

@@ -2,10 +2,6 @@ using Box2D.NET;
 using System.Numerics;
 using static Box2D.NET.B2Worlds;
 using static Box2D.NET.B2Types;
-using static Box2D.NET.B2Bodies;
-using static Box2D.NET.B2Geometries;
-using static Box2D.NET.B2Shapes;
-using static Box2D.NET.B2MathFunction;
 
 namespace Physics_Box2D;
 
@@ -16,7 +12,7 @@ namespace Physics_Box2D;
 public class PhysicsWorld
 {
     private readonly B2WorldId _worldId;
-    private readonly Dictionary<string, B2BodyId> _bodies;
+    private readonly Dictionary<string, IPhysicsBody> _bodies;
 
     /// <summary>
     /// PhysicsWorld 생성자
@@ -33,8 +29,13 @@ public class PhysicsWorld
         worldDef.gravity = new B2Vec2(gravity.X, gravity.Y);
         
         _worldId = b2CreateWorld(ref worldDef);
-        _bodies = new Dictionary<string, B2BodyId>();
+        _bodies = new Dictionary<string, IPhysicsBody>();
     }
+
+    /// <summary>
+    /// 물리 월드 ID
+    /// </summary>
+    public B2WorldId WorldId => _worldId;
 
     /// <summary>
     /// 물리 시뮬레이션 업데이트
@@ -47,32 +48,23 @@ public class PhysicsWorld
     }
 
     /// <summary>
-    /// 정적 바디(지면, 벽 등)를 생성합니다.
+    /// 정적 박스 바디를 생성하여 월드에 추가합니다.
     /// </summary>
     /// <param name="id">바디 식별자</param>
     /// <param name="position">위치</param>
     /// <param name="width">폭</param>
     /// <param name="height">높이</param>
-    public void CreateStaticBox(string id, Vector2 position, float width, float height)
+    /// <param name="friction">마찰력</param>
+    /// <returns>생성된 PhysicsStaticBox</returns>
+    public PhysicsStaticBox CreateStaticBox(string id, Vector2 position, float width, float height, float friction = 0.3f)
     {
-        var bodyDef = b2DefaultBodyDef();
-        bodyDef.type = B2BodyType.b2_staticBody;
-        bodyDef.position = new B2Vec2(position.X, position.Y);
-
-        var bodyId = b2CreateBody(_worldId, ref bodyDef);
-
-        var box = b2MakeBox(width / 2, height / 2);
-        
-        var shapeDef = b2DefaultShapeDef();
-        shapeDef.density = 1.0f;
-        shapeDef.material.friction = 0.3f;
-
-        b2CreatePolygonShape(bodyId, ref shapeDef, ref box);
-        _bodies[id] = bodyId;
+        var staticBox = new PhysicsStaticBox(_worldId, id, position, width, height, friction);
+        _bodies[id] = staticBox;
+        return staticBox;
     }
 
     /// <summary>
-    /// 동적 바디(플레이어, 오브젝트 등)를 생성합니다.
+    /// 동적 박스 바디를 생성하여 월드에 추가합니다.
     /// </summary>
     /// <param name="id">바디 식별자</param>
     /// <param name="position">위치</param>
@@ -81,28 +73,17 @@ public class PhysicsWorld
     /// <param name="density">밀도</param>
     /// <param name="friction">마찰력</param>
     /// <param name="restitution">반발력</param>
-    public void CreateDynamicBox(string id, Vector2 position, float width, float height, 
+    /// <returns>생성된 PhysicsBox</returns>
+    public PhysicsBox CreateDynamicBox(string id, Vector2 position, float width, float height, 
         float density = 1.0f, float friction = 0.3f, float restitution = 0.5f)
     {
-        var bodyDef = b2DefaultBodyDef();
-        bodyDef.type = B2BodyType.b2_dynamicBody;
-        bodyDef.position = new B2Vec2(position.X, position.Y);
-
-        var bodyId = b2CreateBody(_worldId, ref bodyDef);
-
-        var box = b2MakeBox(width / 2, height / 2);
-        
-        var shapeDef = b2DefaultShapeDef();
-        shapeDef.density = density;
-        shapeDef.material.friction = friction;
-        shapeDef.material.restitution = restitution;
-
-        b2CreatePolygonShape(bodyId, ref shapeDef, ref box);
-        _bodies[id] = bodyId;
+        var box = new PhysicsBox(_worldId, id, position, width, height, density, friction, restitution);
+        _bodies[id] = box;
+        return box;
     }
 
     /// <summary>
-    /// 원형 동적 바디를 생성합니다.
+    /// 동적 원 바디를 생성하여 월드에 추가합니다.
     /// </summary>
     /// <param name="id">바디 식별자</param>
     /// <param name="position">위치</param>
@@ -110,24 +91,23 @@ public class PhysicsWorld
     /// <param name="density">밀도</param>
     /// <param name="friction">마찰력</param>
     /// <param name="restitution">반발력</param>
-    public void CreateDynamicCircle(string id, Vector2 position, float radius, 
+    /// <returns>생성된 PhysicsCircle</returns>
+    public PhysicsCircle CreateDynamicCircle(string id, Vector2 position, float radius, 
         float density = 1.0f, float friction = 0.3f, float restitution = 0.5f)
     {
-        var bodyDef = b2DefaultBodyDef();
-        bodyDef.type = B2BodyType.b2_dynamicBody;
-        bodyDef.position = new B2Vec2(position.X, position.Y);
+        var circle = new PhysicsCircle(_worldId, id, position, radius, density, friction, restitution);
+        _bodies[id] = circle;
+        return circle;
+    }
 
-        var bodyId = b2CreateBody(_worldId, ref bodyDef);
-
-        var circle = new B2Circle(new B2Vec2(0, 0), radius);
-        
-        var shapeDef = b2DefaultShapeDef();
-        shapeDef.density = density;
-        shapeDef.material.friction = friction;
-        shapeDef.material.restitution = restitution;
-
-        b2CreateCircleShape(bodyId, ref shapeDef, ref circle);
-        _bodies[id] = bodyId;
+    /// <summary>
+    /// 바디를 ID로 가져옵니다.
+    /// </summary>
+    /// <param name="id">바디 식별자</param>
+    /// <returns>바디 객체</returns>
+    public IPhysicsBody? GetBody(string id)
+    {
+        return _bodies.TryGetValue(id, out var body) ? body : null;
     }
 
     /// <summary>
@@ -137,12 +117,7 @@ public class PhysicsWorld
     /// <returns>위치 벡터</returns>
     public Vector2 GetPosition(string id)
     {
-        if (_bodies.TryGetValue(id, out var bodyId))
-        {
-            var pos = b2Body_GetPosition(bodyId);
-            return new Vector2(pos.X, pos.Y);
-        }
-        return Vector2.Zero;
+        return _bodies.TryGetValue(id, out var body) ? body.Position : Vector2.Zero;
     }
 
     /// <summary>
@@ -152,12 +127,7 @@ public class PhysicsWorld
     /// <returns>회전 각도 (라디안)</returns>
     public float GetAngle(string id)
     {
-        if (_bodies.TryGetValue(id, out var bodyId))
-        {
-            var rotation = b2Body_GetRotation(bodyId);
-            return b2Rot_GetAngle(rotation);
-        }
-        return 0f;
+        return _bodies.TryGetValue(id, out var body) ? body.Angle : 0f;
     }
 
     /// <summary>
@@ -168,11 +138,9 @@ public class PhysicsWorld
     /// <param name="point">힘을 가할 점 (월드 좌표)</param>
     public void ApplyForce(string id, Vector2 force, Vector2 point)
     {
-        if (_bodies.TryGetValue(id, out var bodyId))
+        if (_bodies.TryGetValue(id, out var body))
         {
-            var forceVec = new B2Vec2(force.X, force.Y);
-            var pointVec = new B2Vec2(point.X, point.Y);
-            b2Body_ApplyForce(bodyId, forceVec, pointVec, true);
+            body.ApplyForce(force, point);
         }
     }
 
@@ -183,10 +151,9 @@ public class PhysicsWorld
     /// <param name="force">힘 벡터</param>
     public void ApplyForceToCenter(string id, Vector2 force)
     {
-        if (_bodies.TryGetValue(id, out var bodyId))
+        if (_bodies.TryGetValue(id, out var body))
         {
-            var forceVec = new B2Vec2(force.X, force.Y);
-            b2Body_ApplyForceToCenter(bodyId, forceVec, true);
+            body.ApplyForceToCenter(force);
         }
     }
 
@@ -198,11 +165,9 @@ public class PhysicsWorld
     /// <param name="point">충격을 가할 점 (월드 좌표)</param>
     public void ApplyLinearImpulse(string id, Vector2 impulse, Vector2 point)
     {
-        if (_bodies.TryGetValue(id, out var bodyId))
+        if (_bodies.TryGetValue(id, out var body))
         {
-            var impulseVec = new B2Vec2(impulse.X, impulse.Y);
-            var pointVec = new B2Vec2(point.X, point.Y);
-            b2Body_ApplyLinearImpulse(bodyId, impulseVec, pointVec, true);
+            body.ApplyLinearImpulse(impulse, point);
         }
     }
 
@@ -213,10 +178,9 @@ public class PhysicsWorld
     /// <param name="velocity">속도 벡터</param>
     public void SetLinearVelocity(string id, Vector2 velocity)
     {
-        if (_bodies.TryGetValue(id, out var bodyId))
+        if (_bodies.TryGetValue(id, out var body))
         {
-            var velocityVec = new B2Vec2(velocity.X, velocity.Y);
-            b2Body_SetLinearVelocity(bodyId, velocityVec);
+            body.LinearVelocity = velocity;
         }
     }
 
@@ -227,12 +191,7 @@ public class PhysicsWorld
     /// <returns>속도 벡터</returns>
     public Vector2 GetLinearVelocity(string id)
     {
-        if (_bodies.TryGetValue(id, out var bodyId))
-        {
-            var vel = b2Body_GetLinearVelocity(bodyId);
-            return new Vector2(vel.X, vel.Y);
-        }
-        return Vector2.Zero;
+        return _bodies.TryGetValue(id, out var body) ? body.LinearVelocity : Vector2.Zero;
     }
 
     /// <summary>
@@ -241,9 +200,9 @@ public class PhysicsWorld
     /// <param name="id">바디 식별자</param>
     public void DestroyBody(string id)
     {
-        if (_bodies.TryGetValue(id, out var bodyId))
+        if (_bodies.TryGetValue(id, out var body))
         {
-            b2DestroyBody(bodyId);
+            body.Destroy();
             _bodies.Remove(id);
         }
     }
@@ -274,17 +233,12 @@ public class PhysicsWorld
     /// <returns>바디 ID</returns>
     public B2BodyId? GetBodyId(string id)
     {
-        if (_bodies.TryGetValue(id, out var bodyId))
+        if (_bodies.TryGetValue(id, out var body))
         {
-            return bodyId;
+            return body.BodyId;
         }
         return null;
     }
-
-    /// <summary>
-    /// 월드 ID를 가져옵니다.
-    /// </summary>
-    public B2WorldId WorldId => _worldId;
 
     /// <summary>
     /// 물리 월드를 정리합니다.
