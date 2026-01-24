@@ -32,7 +32,7 @@ public class PhysicsWorld
         var worldDef = b2DefaultWorldDef();
         worldDef.gravity = new B2Vec2(gravity.X, gravity.Y);
         
-        _worldId = b2CreateWorld(worldDef);
+        _worldId = b2CreateWorld(ref worldDef);
         _bodies = new Dictionary<string, B2BodyId>();
     }
 
@@ -59,7 +59,7 @@ public class PhysicsWorld
         bodyDef.type = B2BodyType.b2_staticBody;
         bodyDef.position = new B2Vec2(position.X, position.Y);
 
-        var bodyId = b2CreateBody(_worldId, bodyDef);
+        var bodyId = b2CreateBody(_worldId, ref bodyDef);
 
         var box = b2MakeBox(width / 2, height / 2);
         
@@ -67,7 +67,7 @@ public class PhysicsWorld
         shapeDef.density = 1.0f;
         shapeDef.material.friction = 0.3f;
 
-        b2CreatePolygonShape(bodyId, shapeDef, box);
+        b2CreatePolygonShape(bodyId, ref shapeDef, ref box);
         _bodies[id] = bodyId;
     }
 
@@ -88,7 +88,7 @@ public class PhysicsWorld
         bodyDef.type = B2BodyType.b2_dynamicBody;
         bodyDef.position = new B2Vec2(position.X, position.Y);
 
-        var bodyId = b2CreateBody(_worldId, bodyDef);
+        var bodyId = b2CreateBody(_worldId, ref bodyDef);
 
         var box = b2MakeBox(width / 2, height / 2);
         
@@ -97,7 +97,7 @@ public class PhysicsWorld
         shapeDef.material.friction = friction;
         shapeDef.material.restitution = restitution;
 
-        b2CreatePolygonShape(bodyId, shapeDef, box);
+        b2CreatePolygonShape(bodyId, ref shapeDef, ref box);
         _bodies[id] = bodyId;
     }
 
@@ -117,7 +117,7 @@ public class PhysicsWorld
         bodyDef.type = B2BodyType.b2_dynamicBody;
         bodyDef.position = new B2Vec2(position.X, position.Y);
 
-        var bodyId = b2CreateBody(_worldId, bodyDef);
+        var bodyId = b2CreateBody(_worldId, ref bodyDef);
 
         var circle = new B2Circle(new B2Vec2(0, 0), radius);
         
@@ -126,7 +126,7 @@ public class PhysicsWorld
         shapeDef.material.friction = friction;
         shapeDef.material.restitution = restitution;
 
-        b2CreateCircleShape(bodyId, shapeDef, circle);
+        b2CreateCircleShape(bodyId, ref shapeDef, ref circle);
         _bodies[id] = bodyId;
     }
 

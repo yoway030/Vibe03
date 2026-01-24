@@ -11,4 +11,8 @@
     <ProjectReference Include="..\Physics_Box2D\Physics_Box2D.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Raylib-cs" Version="7.0.2" />
+  </ItemGroup>
+
 </Project>
