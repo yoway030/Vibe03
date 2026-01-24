@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Physics_Box2D/Physics_Box2D.csproj" />
+  <Project Path="Physics_Box2D_Sample/Physics_Box2D_Sample.csproj" />
+  <Project Path="Physics_Box2D_test/Physics_Box2D_test.csproj" />
+</Solution>

@@ -1,0 +1,32 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "app", "app", "{F95F473B-E98A-ACD6-1986-755F447BE36F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Physics_Box2D", "Physics_Box2D", "{F572D9C8-23DE-84A6-3069-5D71EE9563D9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Physics_Box2D", "app\Physics_Box2D\Physics_Box2D\Physics_Box2D.csproj", "{CC608559-7ABD-BC13-0566-F841E3549917}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CC608559-7ABD-BC13-0566-F841E3549917}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CC608559-7ABD-BC13-0566-F841E3549917}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CC608559-7ABD-BC13-0566-F841E3549917}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CC608559-7ABD-BC13-0566-F841E3549917}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{F572D9C8-23DE-84A6-3069-5D71EE9563D9} = {F95F473B-E98A-ACD6-1986-755F447BE36F}
+		{CC608559-7ABD-BC13-0566-F841E3549917} = {F572D9C8-23DE-84A6-3069-5D71EE9563D9}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {0DDF8630-DC6A-4F07-9B83-1E5B4DBD6720}
+	EndGlobalSection
+EndGlobal
