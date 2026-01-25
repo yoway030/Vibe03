@@ -10,10 +10,74 @@ namespace Physics_Sample;
 /// </summary>
 public class Program
 {
+    // 화면 설정
     private const int ScreenWidth = 1280;
     private const int ScreenHeight = 720;
     private const float PixelsPerMeter = 20.0f;
     private const float TimeStep = 1.0f / 60.0f;
+    private const int TargetFPS = 60;
+    
+    // 물리 월드 설정
+    private const float DefaultGravityY = -10.0f;
+    
+    // 초기 객체 수
+    private const int InitialBoxCount = 10;
+    private const int InitialCircleCount = 5;
+    
+    // 지면 및 벽 크기
+    private const float GroundWidth = 30f;
+    private const float GroundHeight = 1f;
+    private const float GroundPositionY = -8f;
+    private const float WallWidth = 1f;
+    private const float WallHeight = 20f;
+    private const float LeftWallPositionX = -16f;
+    private const float RightWallPositionX = 16f;
+    
+    // 랜덤 생성 범위
+    private const float BoxSpawnRangeX = 10f;
+    private const float BoxSpawnOffsetX = 5f;
+    private const float BoxSpawnRangeY = 10f;
+    private const float BoxSpawnOffsetY = 5f;
+    private const float BoxSizeMin = 0.5f;
+    private const float BoxSizeRange = 0.8f;
+    
+    private const float CircleSpawnRangeX = 8f;
+    private const float CircleSpawnOffsetX = 4f;
+    private const float CircleSpawnRangeY = 8f;
+    private const float CircleSpawnOffsetY = 8f;
+    private const float CircleRadiusMin = 0.3f;
+    private const float CircleRadiusRange = 0.5f;
+    
+    // 새 객체 생성 높이
+    private const float SpawnHeight = 15f;
+    
+    // 물리 속성
+    private const float BouncyRestitution = 0.3f;
+    private const float VeryBouncyRestitution = 0.6f;
+    
+    // 마우스 드래그 설정
+    private const float DragImpulseScale = 5.0f; // 드래그 벡터를 충격으로 변환하는 배율
+    private const float DragThresholdDefault = 1.0f; // 기본 선택 거리 임계값
+    private const float CircleThresholdMultiplier = 2.0f; // 원 선택 시 반지름 배율
+    
+    // 랜덤 색상 범위
+    private const int ColorMin = 100;
+    private const int ColorMax = 255;
+    private const int ColorAlpha = 255;
+    
+    // 화살표 렌더링
+    private const float ArrowHeadLength = 15f; // 화살표 머리 길이
+    private const float ArrowHeadAngleDeg = 25f; // 화살표 머리 각도 (도)
+    private const float ArrowThickness = 4f; // 드래그 화살표 두께
+    
+    // UI 폰트 크기
+    private const int TitleFontSize = 24;
+    private const int InfoFontSize = 20;
+    private const int ControlsFontSize = 18;
+    private const int ControlsItemFontSize = 16;
+    private const int ForceTextFontSize = 16;
+    private const int ForceTextOffsetX = 10;
+    private const int ForceTextOffsetY = -20;
 
     private static World? _world;
     private static List<VisualBody> _visualBodies = new();
@@ -28,7 +92,7 @@ public class Program
     {
         // Raylib 초기화
         Raylib.InitWindow(ScreenWidth, ScreenHeight, "Physics Sample - 그래픽 시뮬레이션");
-        Raylib.SetTargetFPS(60);
+        Raylib.SetTargetFPS(TargetFPS);
 
         // 물리 월드 생성
         InitializePhysicsWorld();
@@ -46,55 +110,55 @@ public class Program
 
     private static void InitializePhysicsWorld()
     {
-        _world = new World(new Vector2(0, -10));
+        _world = new World(new Vector2(0, DefaultGravityY));
         _visualBodies.Clear();
 
         // 지면 생성
-        var ground = _world.CreateStaticBox("ground", new Vector2(0, -8), 30, 1);
+        var ground = _world.CreateStaticBox("ground", new Vector2(0, GroundPositionY), GroundWidth, GroundHeight);
         _visualBodies.Add(new VisualBody(ground, Color.Gray));
 
         // 좌우 벽 생성
-        var leftWall = _world.CreateStaticBox("leftWall", new Vector2(-16, 0), 1, 20);
+        var leftWall = _world.CreateStaticBox("leftWall", new Vector2(LeftWallPositionX, 0), WallWidth, WallHeight);
         _visualBodies.Add(new VisualBody(leftWall, Color.Gray));
 
-        var rightWall = _world.CreateStaticBox("rightWall", new Vector2(16, 0), 1, 20);
+        var rightWall = _world.CreateStaticBox("rightWall", new Vector2(RightWallPositionX, 0), WallWidth, WallHeight);
         _visualBodies.Add(new VisualBody(rightWall, Color.Gray));
 
         // 동적 박스들 생성
         Random rand = new Random();
-        for (int i = 0; i < 10; i++)
+        for (int i = 0; i < InitialBoxCount; i++)
         {
-            float x = rand.NextSingle() * 10 - 5;
-            float y = rand.NextSingle() * 10 + 5;
-            float size = rand.NextSingle() * 0.8f + 0.5f;
+            float x = rand.NextSingle() * BoxSpawnRangeX - BoxSpawnOffsetX;
+            float y = rand.NextSingle() * BoxSpawnRangeY + BoxSpawnOffsetY;
+            float size = rand.NextSingle() * BoxSizeRange + BoxSizeMin;
             
             string id = $"box{i}";
-            var box = _world.CreateDynamicBox(id, new Vector2(x, y), size, size, restitution: 0.3f);
+            var box = _world.CreateDynamicBox(id, new Vector2(x, y), size, size, restitution: BouncyRestitution);
             
             Color color = new Color(
-                rand.Next(100, 255),
-                rand.Next(100, 255),
-                rand.Next(100, 255),
-                255
+                rand.Next(ColorMin, ColorMax),
+                rand.Next(ColorMin, ColorMax),
+                rand.Next(ColorMin, ColorMax),
+                ColorAlpha
             );
             _visualBodies.Add(new VisualBody(box, color));
         }
 
         // 동적 원들 생성
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < InitialCircleCount; i++)
         {
-            float x = rand.NextSingle() * 8 - 4;
-            float y = rand.NextSingle() * 8 + 8;
-            float radius = rand.NextSingle() * 0.5f + 0.3f;
+            float x = rand.NextSingle() * CircleSpawnRangeX - CircleSpawnOffsetX;
+            float y = rand.NextSingle() * CircleSpawnRangeY + CircleSpawnOffsetY;
+            float radius = rand.NextSingle() * CircleRadiusRange + CircleRadiusMin;
             
             string id = $"circle{i}";
-            var circle = _world.CreateDynamicCircle(id, new Vector2(x, y), radius, restitution: 0.6f);
+            var circle = _world.CreateDynamicCircle(id, new Vector2(x, y), radius, restitution: VeryBouncyRestitution);
             
             Color color = new Color(
-                rand.Next(100, 255),
-                rand.Next(100, 255),
-                rand.Next(100, 255),
-                255
+                rand.Next(ColorMin, ColorMax),
+                rand.Next(ColorMin, ColorMax),
+                rand.Next(ColorMin, ColorMax),
+                ColorAlpha
             );
             _visualBodies.Add(new VisualBody(circle, color));
         }
@@ -117,20 +181,20 @@ public class Program
         {
             // 랜덤 박스 추가
             Random rand = new Random();
-            float x = rand.NextSingle() * 10 - 5;
-            float y = 15;
-            float size = rand.NextSingle() * 0.8f + 0.5f;
+            float x = rand.NextSingle() * BoxSpawnRangeX - BoxSpawnOffsetX;
+            float y = SpawnHeight;
+            float size = rand.NextSingle() * BoxSizeRange + BoxSizeMin;
             
             string id = $"box{_visualBodies.Count}";
-            var box = _world?.CreateDynamicBox(id, new Vector2(x, y), size, size, restitution: 0.3f);
+            var box = _world?.CreateDynamicBox(id, new Vector2(x, y), size, size, restitution: BouncyRestitution);
             
             if (box != null)
             {
                 Color color = new Color(
-                    rand.Next(100, 255),
-                    rand.Next(100, 255),
-                    rand.Next(100, 255),
-                    255
+                    rand.Next(ColorMin, ColorMax),
+                    rand.Next(ColorMin, ColorMax),
+                    rand.Next(ColorMin, ColorMax),
+                    ColorAlpha
                 );
                 _visualBodies.Add(new VisualBody(box, color));
             }
@@ -140,20 +204,20 @@ public class Program
         {
             // 랜덤 원 추가
             Random rand = new Random();
-            float x = rand.NextSingle() * 8 - 4;
-            float y = 15;
-            float radius = rand.NextSingle() * 0.5f + 0.3f;
+            float x = rand.NextSingle() * CircleSpawnRangeX - CircleSpawnOffsetX;
+            float y = SpawnHeight;
+            float radius = rand.NextSingle() * CircleRadiusRange + CircleRadiusMin;
             
             string id = $"circle{_visualBodies.Count}";
-            var circle = _world?.CreateDynamicCircle(id, new Vector2(x, y), radius, restitution: 0.6f);
+            var circle = _world?.CreateDynamicCircle(id, new Vector2(x, y), radius, restitution: VeryBouncyRestitution);
             
             if (circle != null)
             {
                 Color color = new Color(
-                    rand.Next(100, 255),
-                    rand.Next(100, 255),
-                    rand.Next(100, 255),
-                    255
+                    rand.Next(ColorMin, ColorMax),
+                    rand.Next(ColorMin, ColorMax),
+                    rand.Next(ColorMin, ColorMax),
+                    ColorAlpha
                 );
                 _visualBodies.Add(new VisualBody(circle, color));
             }
@@ -188,7 +252,7 @@ public class Program
 
                 float distance = Vector2.Distance(worldPos, body.Position);
                 float threshold = body is Box box ? Math.Max(box.Width, box.Height) : 
-                                 body is Circle circle ? circle.Radius * 2 : 1.0f;
+                                 body is Circle circle ? circle.Radius * CircleThresholdMultiplier : DragThresholdDefault;
                 
                 if (distance < threshold)
                 {
@@ -209,7 +273,7 @@ public class Program
                 Vector2 dragVector = dragEnd - _dragStart;
                 
                 // 드래그 벡터를 충격으로 변환 (스케일 조정)
-                Vector2 impulse = dragVector * 5.0f;
+                Vector2 impulse = dragVector * DragImpulseScale;
                 _selectedBody.ApplyLinearImpulse(impulse, _selectedBody.Position);
             }
 
@@ -291,27 +355,27 @@ public class Program
             Vector2 dragVectorScreen = new Vector2(dragVector.X * PixelsPerMeter, -dragVector.Y * PixelsPerMeter);
             
             // 드래그 화살표 그리기
-            DrawArrow(dragStartScreen, dragStartScreen + dragVectorScreen, 4, Color.Yellow);
+            DrawArrow(dragStartScreen, dragStartScreen + dragVectorScreen, ArrowThickness, Color.Yellow);
             
             // 힘의 크기 표시
-            float forceMagnitude = dragVector.Length() * 5.0f;
+            float forceMagnitude = dragVector.Length() * DragImpulseScale;
             string forceText = $"Force: {forceMagnitude:F1}";
-            Raylib.DrawText(forceText, (int)mousePos.X + 10, (int)mousePos.Y - 20, 16, Color.Yellow);
+            Raylib.DrawText(forceText, (int)mousePos.X + ForceTextOffsetX, (int)mousePos.Y + ForceTextOffsetY, ForceTextFontSize, Color.Yellow);
         }
 
         // UI 텍스트 그리기
-        Raylib.DrawText("Physics Sample", 10, 10, 24, Color.White);
-        Raylib.DrawText($"FPS: {Raylib.GetFPS()}", 10, 40, 20, Color.LightGray);
-        Raylib.DrawText($"Objects: {_visualBodies.Count}", 10, 65, 20, Color.LightGray);
-        Raylib.DrawText(_isPaused ? "PAUSED" : "RUNNING", 10, 90, 20, _isPaused ? Color.Yellow : Color.Green);
+        Raylib.DrawText("Physics Sample", 10, 10, TitleFontSize, Color.White);
+        Raylib.DrawText($"FPS: {Raylib.GetFPS()}", 10, 40, InfoFontSize, Color.LightGray);
+        Raylib.DrawText($"Objects: {_visualBodies.Count}", 10, 65, InfoFontSize, Color.LightGray);
+        Raylib.DrawText(_isPaused ? "PAUSED" : "RUNNING", 10, 90, InfoFontSize, _isPaused ? Color.Yellow : Color.Green);
         
-        Raylib.DrawText("Controls:", 10, ScreenHeight - 150, 18, Color.White);
-        Raylib.DrawText("  SPACE - Pause/Resume", 10, ScreenHeight - 125, 16, Color.LightGray);
-        Raylib.DrawText("  R - Reset", 10, ScreenHeight - 105, 16, Color.LightGray);
-        Raylib.DrawText("  B - Add Box", 10, ScreenHeight - 85, 16, Color.LightGray);
-        Raylib.DrawText("  C - Add Circle", 10, ScreenHeight - 65, 16, Color.LightGray);
-        Raylib.DrawText("  Left Click & Drag - Apply Impulse", 10, ScreenHeight - 45, 16, Color.LightGray);
-        Raylib.DrawText("  ESC - Exit", 10, ScreenHeight - 25, 16, Color.LightGray);
+        Raylib.DrawText("Controls:", 10, ScreenHeight - 150, ControlsFontSize, Color.White);
+        Raylib.DrawText("  SPACE - Pause/Resume", 10, ScreenHeight - 125, ControlsItemFontSize, Color.LightGray);
+        Raylib.DrawText("  R - Reset", 10, ScreenHeight - 105, ControlsItemFontSize, Color.LightGray);
+        Raylib.DrawText("  B - Add Box", 10, ScreenHeight - 85, ControlsItemFontSize, Color.LightGray);
+        Raylib.DrawText("  C - Add Circle", 10, ScreenHeight - 65, ControlsItemFontSize, Color.LightGray);
+        Raylib.DrawText("  Left Click & Drag - Apply Impulse", 10, ScreenHeight - 45, ControlsItemFontSize, Color.LightGray);
+        Raylib.DrawText("  ESC - Exit", 10, ScreenHeight - 25, ControlsItemFontSize, Color.LightGray);
 
         Raylib.EndDrawing();
     }
@@ -323,19 +387,18 @@ public class Program
         
         // 화살표 머리
         Vector2 direction = Vector2.Normalize(end - start);
-        float arrowLength = 15f;
-        float arrowAngle = 25f * MathF.PI / 180f;
+        float arrowAngle = ArrowHeadAngleDeg * MathF.PI / 180f;
         
         // 회전 행렬을 사용한 화살표 끝 계산
         Vector2 arrowLeft = new Vector2(
             direction.X * MathF.Cos(MathF.PI - arrowAngle) - direction.Y * MathF.Sin(MathF.PI - arrowAngle),
             direction.X * MathF.Sin(MathF.PI - arrowAngle) + direction.Y * MathF.Cos(MathF.PI - arrowAngle)
-        ) * arrowLength;
+        ) * ArrowHeadLength;
         
         Vector2 arrowRight = new Vector2(
             direction.X * MathF.Cos(MathF.PI + arrowAngle) - direction.Y * MathF.Sin(MathF.PI + arrowAngle),
             direction.X * MathF.Sin(MathF.PI + arrowAngle) + direction.Y * MathF.Cos(MathF.PI + arrowAngle)
-        ) * arrowLength;
+        ) * ArrowHeadLength;
         
         Raylib.DrawLineEx(end, end + arrowLeft, thickness, color);
         Raylib.DrawLineEx(end, end + arrowRight, thickness, color);

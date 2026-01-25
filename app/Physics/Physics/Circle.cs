@@ -11,6 +11,15 @@ namespace Physics;
 /// </summary>
 public class Circle : BodyBase
 {
+    /// <summary>기본 밀도 (kg/m²)</summary>
+    public const float DefaultDensity = 1.0f;
+    
+    /// <summary>기본 마찰력</summary>
+    public const float DefaultFriction = 0.3f;
+    
+    /// <summary>기본 반발력 (탄성)</summary>
+    public const float DefaultRestitution = 0.5f;
+
     public float Radius { get; }
     public float Density { get; }
     public float Friction { get; }
@@ -31,9 +40,9 @@ public class Circle : BodyBase
         string id, 
         Vector2 position, 
         float radius,
-        float density = 1.0f, 
-        float friction = 0.3f, 
-        float restitution = 0.5f) 
+        float density = DefaultDensity, 
+        float friction = DefaultFriction, 
+        float restitution = DefaultRestitution) 
         : base(id)
     {
         Radius = radius;
