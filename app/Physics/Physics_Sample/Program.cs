@@ -1,11 +1,11 @@
-using Physics_Box2D;
+using Physics;
 using System.Numerics;
 using Raylib_cs;
 
-namespace Physics_Box2D_Sample;
+namespace Physics_Sample;
 
 /// <summary>
-/// Physics_Box2D 그래픽 샘플 프로그램
+/// Physics 그래픽 샘플 프로그램
 /// Raylib을 사용하여 물리 시뮬레이션을 시각화합니다.
 /// </summary>
 public class Program
@@ -15,9 +15,14 @@ public class Program
     private const float PixelsPerMeter = 20.0f;
     private const float TimeStep = 1.0f / 60.0f;
 
-    private static PhysicsWorld? _world;
+    private static World? _world;
     private static List<VisualBody> _visualBodies = new();
     private static bool _isPaused = false;
+    
+    // 마우스 드래그 상태
+    private static bool _isDragging = false;
+    private static Vector2 _dragStart = Vector2.Zero;
+    private static IBody? _selectedBody = null;
 
     public static void Main(string[] args)
     {
@@ -41,7 +46,7 @@ public class Program
 
     private static void InitializePhysicsWorld()
     {
-        _world = new PhysicsWorld(new Vector2(0, -10));
+        _world = new World(new Vector2(0, -10));
         _visualBodies.Clear();
 
         // 지면 생성
@@ -154,30 +159,69 @@ public class Program
             }
         }
 
-        // 마우스로 물체에 힘 적용
-        if (Raylib.IsMouseButtonPressed(MouseButton.Left))
-        {
-            Vector2 mousePos = Raylib.GetMousePosition();
-            Vector2 worldPos = ScreenToWorld(mousePos);
-
-            foreach (var visualBody in _visualBodies)
-            {
-                var body = visualBody.Body;
-                float distance = Vector2.Distance(worldPos, body.Position);
-                
-                if (distance < 2.0f)
-                {
-                    Vector2 force = (worldPos - body.Position) * 50.0f;
-                    body.ApplyForceToCenter(force);
-                    break;
-                }
-            }
-        }
+        // 마우스 드래그로 물체에 힘 적용
+        HandleMouseDrag();
 
         // 물리 시뮬레이션 업데이트
         if (!_isPaused && _world != null)
         {
             _world.Step(TimeStep);
+        }
+    }
+
+    private static void HandleMouseDrag()
+    {
+        Vector2 mousePos = Raylib.GetMousePosition();
+        Vector2 worldPos = ScreenToWorld(mousePos);
+
+        // 마우스 버튼 누름 - 드래그 시작
+        if (Raylib.IsMouseButtonPressed(MouseButton.Left))
+        {
+            // 가까운 물체 찾기
+            foreach (var visualBody in _visualBodies)
+            {
+                var body = visualBody.Body;
+                
+                // 정적 바디는 건너뜀
+                if (body is StaticBox)
+                    continue;
+
+                float distance = Vector2.Distance(worldPos, body.Position);
+                float threshold = body is Box box ? Math.Max(box.Width, box.Height) : 
+                                 body is Circle circle ? circle.Radius * 2 : 1.0f;
+                
+                if (distance < threshold)
+                {
+                    _isDragging = true;
+                    _dragStart = worldPos;
+                    _selectedBody = body;
+                    break;
+                }
+            }
+        }
+
+        // 마우스 버튼 떼기 - 힘 적용
+        if (Raylib.IsMouseButtonReleased(MouseButton.Left) && _isDragging)
+        {
+            if (_selectedBody != null)
+            {
+                Vector2 dragEnd = worldPos;
+                Vector2 dragVector = dragEnd - _dragStart;
+                
+                // 드래그 벡터를 충격으로 변환 (스케일 조정)
+                Vector2 impulse = dragVector * 5.0f;
+                _selectedBody.ApplyLinearImpulse(impulse, _selectedBody.Position);
+            }
+
+            _isDragging = false;
+            _selectedBody = null;
+        }
+
+        // 드래그 중단 (ESC나 윈도우 포커스 잃을 때)
+        if (_isDragging && !Raylib.IsMouseButtonDown(MouseButton.Left))
+        {
+            _isDragging = false;
+            _selectedBody = null;
         }
     }
 
@@ -194,7 +238,7 @@ public class Program
             float angle = body.Angle;
             Vector2 screenPos = WorldToScreen(pos);
 
-            if (body is PhysicsBox box)
+            if (body is Box box)
             {
                 float width = box.Width * PixelsPerMeter;
                 float height = box.Height * PixelsPerMeter;
@@ -211,22 +255,13 @@ public class Program
                 float angleDeg = angle * (180.0f / MathF.PI);
                 
                 Raylib.DrawRectanglePro(rectangle, origin, angleDeg, visualBody.Color);
-                Raylib.DrawRectangleLinesEx(rectangle, 2, Color.Black);
             }
-            else if (body is PhysicsCircle circle)
+            else if (body is Circle circle)
             {
                 float radius = circle.Radius * PixelsPerMeter;
                 Raylib.DrawCircleV(screenPos, radius, visualBody.Color);
-                Raylib.DrawCircleLinesV(screenPos, radius, Color.Black);
-                
-                // 회전 표시를 위한 선
-                Vector2 lineEnd = new Vector2(
-                    screenPos.X + radius * MathF.Cos(angle),
-                    screenPos.Y + radius * MathF.Sin(angle)
-                );
-                Raylib.DrawLineEx(screenPos, lineEnd, 2, Color.Black);
             }
-            else if (body is PhysicsStaticBox staticBox)
+            else if (body is StaticBox staticBox)
             {
                 float width = staticBox.Width * PixelsPerMeter;
                 float height = staticBox.Height * PixelsPerMeter;
@@ -242,12 +277,30 @@ public class Program
                 float angleDeg = angle * (180.0f / MathF.PI);
                 
                 Raylib.DrawRectanglePro(rectangle, origin, angleDeg, visualBody.Color);
-                Raylib.DrawRectangleLinesEx(rectangle, 2, Color.Black);
             }
         }
 
+        // 드래그 중일 때 화살표 그리기
+        if (_isDragging && _selectedBody != null)
+        {
+            Vector2 mousePos = Raylib.GetMousePosition();
+            Vector2 currentWorldPos = ScreenToWorld(mousePos);
+            
+            Vector2 dragStartScreen = WorldToScreen(_dragStart);
+            Vector2 dragVector = currentWorldPos - _dragStart;
+            Vector2 dragVectorScreen = new Vector2(dragVector.X * PixelsPerMeter, -dragVector.Y * PixelsPerMeter);
+            
+            // 드래그 화살표 그리기
+            DrawArrow(dragStartScreen, dragStartScreen + dragVectorScreen, 4, Color.Yellow);
+            
+            // 힘의 크기 표시
+            float forceMagnitude = dragVector.Length() * 5.0f;
+            string forceText = $"Force: {forceMagnitude:F1}";
+            Raylib.DrawText(forceText, (int)mousePos.X + 10, (int)mousePos.Y - 20, 16, Color.Yellow);
+        }
+
         // UI 텍스트 그리기
-        Raylib.DrawText("Physics_Box2D Sample", 10, 10, 24, Color.White);
+        Raylib.DrawText("Physics Sample", 10, 10, 24, Color.White);
         Raylib.DrawText($"FPS: {Raylib.GetFPS()}", 10, 40, 20, Color.LightGray);
         Raylib.DrawText($"Objects: {_visualBodies.Count}", 10, 65, 20, Color.LightGray);
         Raylib.DrawText(_isPaused ? "PAUSED" : "RUNNING", 10, 90, 20, _isPaused ? Color.Yellow : Color.Green);
@@ -257,10 +310,35 @@ public class Program
         Raylib.DrawText("  R - Reset", 10, ScreenHeight - 105, 16, Color.LightGray);
         Raylib.DrawText("  B - Add Box", 10, ScreenHeight - 85, 16, Color.LightGray);
         Raylib.DrawText("  C - Add Circle", 10, ScreenHeight - 65, 16, Color.LightGray);
-        Raylib.DrawText("  Left Click - Apply Force", 10, ScreenHeight - 45, 16, Color.LightGray);
+        Raylib.DrawText("  Left Click & Drag - Apply Impulse", 10, ScreenHeight - 45, 16, Color.LightGray);
         Raylib.DrawText("  ESC - Exit", 10, ScreenHeight - 25, 16, Color.LightGray);
 
         Raylib.EndDrawing();
+    }
+
+    private static void DrawArrow(Vector2 start, Vector2 end, float thickness, Color color)
+    {
+        // 화살표 본체
+        Raylib.DrawLineEx(start, end, thickness, color);
+        
+        // 화살표 머리
+        Vector2 direction = Vector2.Normalize(end - start);
+        float arrowLength = 15f;
+        float arrowAngle = 25f * MathF.PI / 180f;
+        
+        // 회전 행렬을 사용한 화살표 끝 계산
+        Vector2 arrowLeft = new Vector2(
+            direction.X * MathF.Cos(MathF.PI - arrowAngle) - direction.Y * MathF.Sin(MathF.PI - arrowAngle),
+            direction.X * MathF.Sin(MathF.PI - arrowAngle) + direction.Y * MathF.Cos(MathF.PI - arrowAngle)
+        ) * arrowLength;
+        
+        Vector2 arrowRight = new Vector2(
+            direction.X * MathF.Cos(MathF.PI + arrowAngle) - direction.Y * MathF.Sin(MathF.PI + arrowAngle),
+            direction.X * MathF.Sin(MathF.PI + arrowAngle) + direction.Y * MathF.Cos(MathF.PI + arrowAngle)
+        ) * arrowLength;
+        
+        Raylib.DrawLineEx(end, end + arrowLeft, thickness, color);
+        Raylib.DrawLineEx(end, end + arrowRight, thickness, color);
     }
 
     private static Vector2 WorldToScreen(Vector2 worldPos)
@@ -282,5 +360,5 @@ public class Program
     /// <summary>
     /// 물리 바디와 시각적 표현을 연결하는 클래스
     /// </summary>
-    private record VisualBody(IPhysicsBody Body, Color Color);
+    private record VisualBody(IBody Body, Color Color);
 }

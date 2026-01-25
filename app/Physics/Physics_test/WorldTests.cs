@@ -1,32 +1,32 @@
 using System.Numerics;
 using Xunit;
-using Physics_Box2D;
+using Physics;
 
-namespace Physics_Box2D_test;
+namespace Physics_test;
 
 /// <summary>
-/// PhysicsWorld 클래스의 기본 기능을 테스트합니다.
+/// World ?�래?�의 기본 기능???�스?�합?�다.
 /// </summary>
-public class PhysicsWorldTests
+public class WorldTests
 {
     [Fact]
-    public void PhysicsWorld_Creation_ShouldSucceed()
+    public void World_Creation_ShouldSucceed()
     {
         // Arrange & Act
-        var world = new PhysicsWorld();
+        var world = new World(new Vector2(0, -10f));
 
         // Assert
         Assert.NotNull(world);
     }
 
     [Fact]
-    public void PhysicsWorld_Creation_WithCustomGravity_ShouldSucceed()
+    public void World_Creation_WithCustomGravity_ShouldSucceed()
     {
         // Arrange
         var gravity = new Vector2(0, -20f);
 
         // Act
-        var world = new PhysicsWorld(gravity);
+        var world = new World(gravity);
 
         // Assert
         Assert.NotNull(world);
@@ -36,7 +36,7 @@ public class PhysicsWorldTests
     public void CreateStaticBox_ShouldAddBodyToWorld()
     {
         // Arrange
-        var world = new PhysicsWorld();
+        var world = new World(new Vector2(0, -10f));
         var id = "ground";
         var position = new Vector2(0, 0);
 
@@ -52,7 +52,7 @@ public class PhysicsWorldTests
     public void CreateDynamicBox_ShouldAddBodyToWorld()
     {
         // Arrange
-        var world = new PhysicsWorld();
+        var world = new World(new Vector2(0, -10f));
         var id = "box";
         var position = new Vector2(0, 10);
 
@@ -68,7 +68,7 @@ public class PhysicsWorldTests
     public void CreateDynamicCircle_ShouldAddBodyToWorld()
     {
         // Arrange
-        var world = new PhysicsWorld();
+        var world = new World(new Vector2(0, -10f));
         var id = "ball";
         var position = new Vector2(0, 10);
 
@@ -84,27 +84,27 @@ public class PhysicsWorldTests
     public void Step_WithDynamicBody_ShouldUpdatePosition()
     {
         // Arrange
-        var world = new PhysicsWorld(new Vector2(0, -10f));
+        var world = new World(new Vector2(0, -10f));
         var id = "box";
         var initialPosition = new Vector2(0, 10);
         world.CreateDynamicBox(id, initialPosition, 1f, 1f);
 
         // Act
-        for (int i = 0; i < 60; i++) // 1초 시뮬레이션 (60 프레임)
+        for (int i = 0; i < 60; i++) // 1�??��??�이??(60 ?�레??
         {
             world.Step(1f / 60f);
         }
         var finalPosition = world.GetPosition(id);
 
         // Assert
-        Assert.True(finalPosition.Y < initialPosition.Y, "박스가 중력에 의해 아래로 떨어져야 합니다.");
+        Assert.True(finalPosition.Y < initialPosition.Y, "박스가 중력???�해 ?�래�??�어?�야 ?�니??");
     }
 
     [Fact]
     public void SetLinearVelocity_ShouldUpdateVelocity()
     {
         // Arrange
-        var world = new PhysicsWorld();
+        var world = new World(new Vector2(0, -10f));
         var id = "box";
         world.CreateDynamicBox(id, new Vector2(0, 0), 1f, 1f);
         var targetVelocity = new Vector2(5f, 0f);
@@ -122,28 +122,28 @@ public class PhysicsWorldTests
     public void ApplyForceToCenter_ShouldAffectVelocity()
     {
         // Arrange
-        var world = new PhysicsWorld(new Vector2(0, 0)); // 중력 없음
+        var world = new World(new Vector2(0, 0)); // 중력 ?�음
         var id = "box";
         world.CreateDynamicBox(id, new Vector2(0, 0), 1f, 1f);
         var force = new Vector2(100f, 0f);
 
         // Act
         world.ApplyForceToCenter(id, force);
-        for (int i = 0; i < 60; i++) // 1초 시뮬레이션
+        for (int i = 0; i < 60; i++) // 1�??��??�이??
         {
             world.Step(1f / 60f);
         }
         var velocity = world.GetLinearVelocity(id);
 
         // Assert
-        Assert.True(velocity.X > 0, "힘을 가한 방향으로 속도가 증가해야 합니다.");
+        Assert.True(velocity.X > 0, "?�을 가??방향?�로 ?�도가 증�??�야 ?�니??");
     }
 
     [Fact]
     public void ApplyLinearImpulse_ShouldImmediatelyChangeVelocity()
     {
         // Arrange
-        var world = new PhysicsWorld(new Vector2(0, 0));
+        var world = new World(new Vector2(0, 0));
         var id = "box";
         var position = new Vector2(0, 0);
         world.CreateDynamicBox(id, position, 1f, 1f, density: 1.0f);
@@ -154,14 +154,14 @@ public class PhysicsWorldTests
         var velocity = world.GetLinearVelocity(id);
 
         // Assert
-        Assert.True(velocity.X > 0, "충격이 가해진 후 속도가 즉시 변경되어야 합니다.");
+        Assert.True(velocity.X > 0, "충격??가?�진 ???�도가 즉시 변경되?�야 ?�니??");
     }
 
     [Fact]
     public void DestroyBody_ShouldRemoveBodyFromWorld()
     {
         // Arrange
-        var world = new PhysicsWorld();
+        var world = new World(new Vector2(0, -10f));
         var id = "box";
         world.CreateDynamicBox(id, new Vector2(0, 0), 1f, 1f);
         Assert.True(world.HasBody(id));
@@ -177,7 +177,7 @@ public class PhysicsWorldTests
     public void GetAllBodyIds_ShouldReturnAllBodies()
     {
         // Arrange
-        var world = new PhysicsWorld();
+        var world = new World(new Vector2(0, -10f));
         world.CreateDynamicBox("box1", new Vector2(0, 0), 1f, 1f);
         world.CreateDynamicBox("box2", new Vector2(2, 0), 1f, 1f);
         world.CreateStaticBox("ground", new Vector2(0, -5), 10f, 1f);
@@ -196,7 +196,7 @@ public class PhysicsWorldTests
     public void GetAngle_ShouldReturnBodyAngle()
     {
         // Arrange
-        var world = new PhysicsWorld();
+        var world = new World(new Vector2(0, -10f));
         var id = "box";
         world.CreateDynamicBox(id, new Vector2(0, 0), 1f, 1f);
 
@@ -211,7 +211,7 @@ public class PhysicsWorldTests
     public void GetPosition_ForNonExistentBody_ShouldReturnZero()
     {
         // Arrange
-        var world = new PhysicsWorld();
+        var world = new World(new Vector2(0, -10f));
 
         // Act
         var position = world.GetPosition("nonexistent");
@@ -224,9 +224,29 @@ public class PhysicsWorldTests
     public void HasBody_ForNonExistentBody_ShouldReturnFalse()
     {
         // Arrange
-        var world = new PhysicsWorld();
+        var world = new World(new Vector2(0, -10f));
 
         // Act & Assert
         Assert.False(world.HasBody("nonexistent"));
+    }
+
+    [Fact]
+    public void World_WithZeroGravity_ShouldNotFall()
+    {
+        // Arrange
+        var world = new World(Vector2.Zero); // 무중??
+        var id = "box";
+        var initialPosition = new Vector2(0, 10);
+        world.CreateDynamicBox(id, initialPosition, 1f, 1f);
+
+        // Act
+        for (int i = 0; i < 60; i++) // 1�??��??�이??
+        {
+            world.Step(1f / 60f);
+        }
+        var finalPosition = world.GetPosition(id);
+
+        // Assert
+        Assert.Equal(initialPosition.Y, finalPosition.Y, 0.1f);
     }
 }

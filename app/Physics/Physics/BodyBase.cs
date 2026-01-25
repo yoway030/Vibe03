@@ -3,12 +3,12 @@ using Box2D.NET;
 using static Box2D.NET.B2Bodies;
 using static Box2D.NET.B2MathFunction;
 
-namespace Physics_Box2D;
+namespace Physics;
 
 /// <summary>
-/// 물리 바디의 기본 구현
+/// 물리 바디??기본 구현
 /// </summary>
-public abstract class PhysicsBodyBase : IPhysicsBody
+public abstract class BodyBase : IBody
 {
     protected B2BodyId _bodyId;
     protected bool _isDestroyed;
@@ -52,7 +52,7 @@ public abstract class PhysicsBodyBase : IPhysicsBody
         }
     }
 
-    protected PhysicsBodyBase(string id)
+    protected BodyBase(string id)
     {
         Id = id;
         _isDestroyed = false;

@@ -22,7 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Physics_Box2D\Physics_Box2D.csproj" />
+    <ProjectReference Include="..\Physics\Physics.csproj" />
   </ItemGroup>
 
 </Project>
