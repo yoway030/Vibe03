@@ -12,12 +12,6 @@ namespace Physics;
 /// </summary>
 public class StaticBox : BodyBase
 {
-    /// <summary>기본 마찰력</summary>
-    public const float DefaultFriction = 0.3f;
-    
-    /// <summary>정적 바디의 기본 밀도 (Box2D 내부 처리용)</summary>
-    private const float StaticBodyDensity = 1.0f;
-
     public float Width { get; }
     public float Height { get; }
 
@@ -36,7 +30,7 @@ public class StaticBox : BodyBase
         Vector2 position, 
         float width, 
         float height,
-        float friction = DefaultFriction) 
+        float friction = PhysicsConfig.DefaultFriction) 
         : base(id)
     {
         Width = width;
@@ -53,7 +47,7 @@ public class StaticBox : BodyBase
         var box = b2MakeBox(width / 2, height / 2);
         
         var shapeDef = b2DefaultShapeDef();
-        shapeDef.density = StaticBodyDensity;
+        shapeDef.density = PhysicsConfig.StaticBodyDensity;
         shapeDef.material.friction = friction;
 
         b2CreatePolygonShape(_bodyId, ref shapeDef, ref box);

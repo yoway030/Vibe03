@@ -11,9 +11,6 @@ namespace Physics;
 /// </summary>
 public class World
 {
-    /// <summary>기본 서브 스텝 횟수 (안정적인 물리 시뮬레이션을 위한 권장값)</summary>
-    public const int DefaultSubStepCount = 4;
-
     private readonly B2WorldId _worldId;
     private readonly Dictionary<string, IBody> _bodies;
 
@@ -40,7 +37,7 @@ public class World
     /// </summary>
     /// <param name="timeStep">시간 간격 (초)</param>
     /// <param name="subStepCount">서브 스텝 횟수 (기본값 4)</param>
-    public void Step(float timeStep, int subStepCount = DefaultSubStepCount)
+    public void Step(float timeStep, int subStepCount = PhysicsConfig.DefaultSubStepCount)
     {
         b2World_Step(_worldId, timeStep, subStepCount);
     }
