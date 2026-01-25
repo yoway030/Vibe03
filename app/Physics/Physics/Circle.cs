@@ -7,7 +7,7 @@ using static Box2D.NET.B2Shapes;
 namespace Physics;
 
 /// <summary>
-/// ?�적 ??바디
+/// 동적 원 바디
 /// </summary>
 public class Circle : BodyBase
 {
@@ -17,15 +17,15 @@ public class Circle : BodyBase
     public float Restitution { get; }
 
     /// <summary>
-    /// ?�적 ???�성
+    /// 동적 원 생성
     /// </summary>
-    /// <param name="worldId">물리 ?�드 ID</param>
-    /// <param name="id">바디 ?�별??/param>
-    /// <param name="position">초기 ?�치</param>
-    /// <param name="radius">반�?�?/param>
-    /// <param name="density">밀??/param>
-    /// <param name="friction">마찰??/param>
-    /// <param name="restitution">반발??/param>
+    /// <param name="worldId">물리 월드 ID</param>
+    /// <param name="id">바디 식별자</param>
+    /// <param name="position">초기 위치</param>
+    /// <param name="radius">반지름</param>
+    /// <param name="density">밀도</param>
+    /// <param name="friction">마찰력</param>
+    /// <param name="restitution">반발력</param>
     public Circle(
         B2WorldId worldId,
         string id, 
@@ -41,14 +41,14 @@ public class Circle : BodyBase
         Friction = friction;
         Restitution = restitution;
 
-        // ?�적 바디 ?�성
+        // 동적 바디 생성
         var bodyDef = b2DefaultBodyDef();
         bodyDef.type = B2BodyType.b2_dynamicBody;
         bodyDef.position = new B2Vec2(position.X, position.Y);
 
         _bodyId = b2CreateBody(worldId, ref bodyDef);
 
-        // ???�태 ?�성
+        // 원 셔이프 생성
         var circle = new B2Circle(new B2Vec2(0, 0), radius);
         
         var shapeDef = b2DefaultShapeDef();
