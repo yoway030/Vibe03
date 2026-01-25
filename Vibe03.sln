@@ -4,9 +4,9 @@ VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "app", "app", "{F95F473B-E98A-ACD6-1986-755F447BE36F}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Physics_Box2D", "Physics_Box2D", "{F572D9C8-23DE-84A6-3069-5D71EE9563D9}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Physics", "Physics", "{F572D9C8-23DE-84A6-3069-5D71EE9563D9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Physics_Box2D", "app\Physics_Box2D\Physics_Box2D\Physics_Box2D.csproj", "{CC608559-7ABD-BC13-0566-F841E3549917}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Physics", "app\Physics\Physics\Physics.csproj", "{CC608559-7ABD-BC13-0566-F841E3549917}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
