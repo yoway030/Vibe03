@@ -1,14 +1,14 @@
-# Physics_Box2D 모듈 개발 기록
+# Physics 모듈 개발 기록
 
 ## 2026-01-25: 모듈 초기 구성 및 기본 기능 구현
 
 ### 작업 내용
 
 #### 1. 프로젝트 구조 생성
-- `Physics_Box2D/` 메인 모듈 프로젝트 생성
-- `Physics_Box2D_test/` 테스트 프로젝트 생성
-- `Physics_Box2D_Sample/` 샘플 프로젝트 생성
-- `Physics_Box2D.sln` 솔루션 파일 생성
+- `Physics/` 메인 모듈 프로젝트 생성
+- `Physics_test/` 테스트 프로젝트 생성
+- `Physics_Sample/` 샘플 프로젝트 생성
+- `Physics.slnx` 솔루션 파일 생성
 
 #### 2. Box2D.NET 버전 문제 발견
 NuGet에서 사용 가능한 Box2D.NET 버전이 3.1.0.500으로, GitHub 저장소의 최신 버전과 API가 완전히 다릅니다.
@@ -21,11 +21,11 @@ NuGet에서 사용 가능한 Box2D.NET 버전이 3.1.0.500으로, GitHub 저장�
 - **타입**: `B2WorldId`, `B2BodyId` 등의 struct 기반 ID 시스템
 - **파라미터**: `in`, `ref` 키워드를 광범위하게 사용
 
-#### 3. PhysicsWorld 클래스 구현 시도
-Box2D.NET 3.x API에 맞춰 PhysicsWorld 클래스를 구현했으나, 복잡한 `in`/`ref` 매개변수 요구사항으로 인해 빌드 오류가 발생했습니다.
+#### 3. World 클래스 구현
+Box2D.NET 3.x API에 맞춰 World 클래스를 구현하고, OOP 구조로 리팩토링했습니다.
 
-**구현된 주요 메서드 (API 조정 필요):**
-- `PhysicsWorld(Vector2 gravity)` - 생성자
+**구현된 주요 메서드:**
+- `World(Vector2 gravity)` - 생성자
 - `Step(float timeStep, int subStepCount)` - 물리 시뮬레이션 스텝
 - `CreateStaticBox()` - 정적 박스 생성
 - `CreateDynamicBox()` - 동적 박스 생성

@@ -27,7 +27,7 @@ public class Program
     public static void Main(string[] args)
     {
         // Raylib 초기화
-        Raylib.InitWindow(ScreenWidth, ScreenHeight, "Physics_Box2D Sample - 그래픽 시뮬레이션");
+        Raylib.InitWindow(ScreenWidth, ScreenHeight, "Physics Sample - 그래픽 시뮬레이션");
         Raylib.SetTargetFPS(60);
 
         // 물리 월드 생성

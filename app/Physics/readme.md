@@ -1,4 +1,4 @@
-# Physics_Box2D
+# Physics
 
 Box2D.NET 3.x 물리 엔진을 래핑한 C# 모듈로, 2D 물리 시뮬레이션을 쉽게 구현할 수 있도록 지원합니다.
 
@@ -15,7 +15,7 @@ Box2D.NET 3.x 물리 엔진을 래핑한 C# 모듈로, 2D 물리 시뮬레이션
 
 ## 개요
 
-Physics_Box2D는 [Box2D.NET](https://github.com/ikpil/Box2D.NET) 라이브러리를 기반으로 하여, 게임 개발에 필요한 물리 시뮬레이션 기능을 제공하는 모듈입니다. 직관적인 API를 통해 복잡한 Box2D 기능을 쉽게 사용할 수 있도록 설계되었습니다.
+Physics는 [Box2D.NET](https://github.com/ikpil/Box2D.NET) 라이브러리를 기반으로 하여, 게임 개발에 필요한 물리 시뮬레이션 기능을 제공하는 모듈입니다. 직관적인 API를 통해 복잡한 Box2D 기능을 쉽게 사용할 수 있도록 설계되었습니다.
 
 ## 주요 기능
 
@@ -44,7 +44,7 @@ dotnet add package Box2D.NET --version 3.1.0.500
 
 ```xml
 <ItemGroup>
-  <ProjectReference Include="..\Physics_Box2D\Physics_Box2D.csproj" />
+  <ProjectReference Include="..\Physics\Physics.csproj" />
 </ItemGroup>
 ```
 
@@ -54,10 +54,10 @@ dotnet add package Box2D.NET --version 3.1.0.500
 
 ```csharp
 using System.Numerics;
-using Physics_Box2D;
+using Physics;
 
 // 1. 물리 월드 생성 (중력: Y축 방향으로 -10m/s²)
-var world = new PhysicsWorld(new Vector2(0, -10f));
+var world = new World(new Vector2(0, -10f));
 
 // 2. 정적 바디(지면) 생성
 world.CreateStaticBox("ground", new Vector2(0, 0), 20f, 1f);
@@ -160,37 +160,38 @@ PhysicsWorld(Vector2 gravity = default)
 ## 프로젝트 구조
 
 ```
-Physics_Box2D/
-├── Physics_Box2D/              # 메인 모듈 프로젝트
-│   ├── PhysicsWorld.cs         # 물리 월드 래퍼 클래스
-│   └── Physics_Box2D.csproj
-├── Physics_Box2D_test/         # 유닛 테스트 프로젝트
-│   ├── PhysicsWorldTests.cs    # 테스트 코드
-│   └── Physics_Box2D_test.csproj
-├── Physics_Box2D_Sample/       # 샘플 프로젝트
-│   ├── Program.cs              # 샘플 코드
-│   └── Physics_Box2D_Sample.csproj
-├── Physics_Box2D.sln           # 솔루션 파일
-├── Physics_Box2D_plan.md       # 개발 계획
-├── Physics_Box2D_progress.md   # 개발 기록
-└── readme.md                   # 이 파일
+Physics/
+├── Physics/                  # 메인 모듈 프로젝트
+│   ├── World.cs             # 물리 월드 래퍼 클래스
+│   ├── IBody.cs             # 바디 인터페이스
+│   ├── BodyBase.cs          # 바디 기본 클래스
+│   ├── Box.cs               # 박스 클래스
+│   ├── Circle.cs            # 원 클래스
+│   ├── StaticBox.cs         # 정적 박스 클래스
+│   └── Physics.csproj
+├── Physics_test/            # 유닛 테스트 프로젝트
+│   ├── WorldTests.cs        # 테스트 코드
+│   └── Physics_test.csproj
+├── Physics_Sample/          # 샘플 프로젝트
+│   ├── Program.cs           # 샘플 코드
+│   └── Physics_Sample.csproj
+├── Physics.slnx             # 솔루션 파일
+├── Physics_plan.md          # 개발 계획
+├── Physics_progress.md      # 개발 기록
+└── readme.md                # 이 파일
 ```
 
 ## 테스트 실행
 
-⚠️ **주의**: 현재 테스트는 Box2D.NET 3.x API에 맞춰 업데이트가 필요합니다.
-
 ```bash
-cd Physics_Box2D_test
+cd Physics_test
 dotnet test
 ```
 
 ## 샘플 실행
 
-⚠️ **주의**: 현재 샘플은 Box2D.NET 3.x API에 맞춰 업데이트가 필요합니다.
-
 ```bash
-cd Physics_Box2D_Sample
+cd Physics_Sample
 dotnet run
 ```
 
