@@ -96,6 +96,26 @@ public class World
     }
 
     /// <summary>
+    /// 동적 별 바디를 생성하여 월드에 추가합니다
+    /// </summary>
+    /// <param name="id">바디 식별자</param>
+    /// <param name="position">위치</param>
+    /// <param name="outerRadius">외부 반지름</param>
+    /// <param name="pointCount">별의 꼭지점 개수 (3-4)</param>
+    /// <param name="density">밀도</param>
+    /// <param name="friction">마찰력</param>
+    /// <param name="restitution">반발력</param>
+    /// <returns>생성된 Star</returns>
+    public Star CreateDynamicStar(string id, Vector2 position, float outerRadius, 
+        int pointCount = Star.MaxPointCount,
+        float density = 1.0f, float friction = 0.3f, float restitution = 0.5f)
+    {
+        var star = new Star(_worldId, id, position, outerRadius, pointCount, density, friction, restitution);
+        _bodies[id] = star;
+        return star;
+    }
+
+    /// <summary>
     /// 바디를 ID로 가져옵니다.
     /// </summary>
     /// <param name="id">바디 식별자</param>

@@ -23,6 +23,7 @@ public class Program
     // 초기 객체 수
     private const int InitialBoxCount = 10;
     private const int InitialCircleCount = 5;
+    private const int InitialStarCount = 3;
     
     // 지면 및 벽 크기
     private const float GroundWidth = 30f;
@@ -47,6 +48,15 @@ public class Program
     private const float CircleSpawnOffsetY = 8f;
     private const float CircleRadiusMin = 0.3f;
     private const float CircleRadiusRange = 0.5f;
+    
+    private const float StarSpawnRangeX = 10f;
+    private const float StarSpawnOffsetX = 5f;
+    private const float StarSpawnRangeY = 10f;
+    private const float StarSpawnOffsetY = 5f;
+    private const float StarOuterRadiusMin = 0.4f;
+    private const float StarOuterRadiusRange = 0.6f;
+    private const int StarPointCountMin = 3;
+    private const int StarPointCountMax = 4;
     
     // 새 객체 생성 높이
     private const float SpawnHeight = 15f;
@@ -162,6 +172,26 @@ public class Program
             );
             _visualBodies.Add(new VisualBody(circle, color));
         }
+
+        // 동적 별들 생성
+        for (int i = 0; i < InitialStarCount; i++)
+        {
+            float x = rand.NextSingle() * StarSpawnRangeX - StarSpawnOffsetX;
+            float y = rand.NextSingle() * StarSpawnRangeY + StarSpawnOffsetY;
+            float outerRadius = rand.NextSingle() * StarOuterRadiusRange + StarOuterRadiusMin;
+            int pointCount = rand.Next(StarPointCountMin, StarPointCountMax + 1);
+            
+            string id = $"star{i}";
+            var star = _world.CreateDynamicStar(id, new Vector2(x, y), outerRadius, pointCount, restitution: BouncyRestitution);
+            
+            Color color = new Color(
+                rand.Next(ColorMin, ColorMax),
+                rand.Next(ColorMin, ColorMax),
+                rand.Next(ColorMin, ColorMax),
+                ColorAlpha
+            );
+            _visualBodies.Add(new VisualBody(star, color));
+        }
     }
 
     private static void Update()
@@ -223,6 +253,30 @@ public class Program
             }
         }
 
+        if (Raylib.IsKeyPressed(KeyboardKey.S))
+        {
+            // 랜덤 별 추가
+            Random rand = new Random();
+            float x = rand.NextSingle() * StarSpawnRangeX - StarSpawnOffsetX;
+            float y = SpawnHeight;
+            float outerRadius = rand.NextSingle() * StarOuterRadiusRange + StarOuterRadiusMin;
+            int pointCount = rand.Next(StarPointCountMin, StarPointCountMax + 1);
+            
+            string id = $"star{_visualBodies.Count}";
+            var star = _world?.CreateDynamicStar(id, new Vector2(x, y), outerRadius, pointCount, restitution: BouncyRestitution);
+            
+            if (star != null)
+            {
+                Color color = new Color(
+                    rand.Next(ColorMin, ColorMax),
+                    rand.Next(ColorMin, ColorMax),
+                    rand.Next(ColorMin, ColorMax),
+                    ColorAlpha
+                );
+                _visualBodies.Add(new VisualBody(star, color));
+            }
+        }
+
         // 마우스 드래그로 물체에 힘 적용
         HandleMouseDrag();
 
@@ -252,7 +306,8 @@ public class Program
 
                 float distance = Vector2.Distance(worldPos, body.Position);
                 float threshold = body is Box box ? Math.Max(box.Width, box.Height) : 
-                                 body is Circle circle ? circle.Radius * CircleThresholdMultiplier : DragThresholdDefault;
+                                 body is Circle circle ? circle.Radius * CircleThresholdMultiplier :
+                                 body is Star star ? star.OuterRadius * CircleThresholdMultiplier : DragThresholdDefault;
                 
                 if (distance < threshold)
                 {
@@ -325,6 +380,33 @@ public class Program
                 float radius = circle.Radius * PixelsPerMeter;
                 Raylib.DrawCircleV(screenPos, radius, visualBody.Color);
             }
+            else if (body is Star star)
+            {
+                // 별의 정점들을 계산하여 그리기
+                int vertexCount = star.PointCount * 2;
+                Vector2[] vertices = new Vector2[vertexCount];
+                
+                float outerRadius = star.OuterRadius * PixelsPerMeter;
+                float innerRadius = outerRadius * Star.InnerRadiusRatio;
+                
+                for (int i = 0; i < vertexCount; i++)
+                {
+                    float angleOffset = i * MathF.PI / star.PointCount;
+                    float currentAngle = angle + angleOffset;
+                    float radius = (i % 2 == 0) ? outerRadius : innerRadius;
+                    
+                    float x = screenPos.X + MathF.Cos(currentAngle) * radius;
+                    float y = screenPos.Y - MathF.Sin(currentAngle) * radius;
+                    vertices[i] = new Vector2(x, y);
+                }
+                
+                // 삼각형 팬으로 별 채우기
+                for (int i = 0; i < vertexCount; i++)
+                {
+                    int nextIndex = (i + 1) % vertexCount;
+                    Raylib.DrawTriangle(screenPos, vertices[nextIndex], vertices[i], visualBody.Color);
+                }
+            }
             else if (body is StaticBox staticBox)
             {
                 float width = staticBox.Width * PixelsPerMeter;
@@ -369,11 +451,12 @@ public class Program
         Raylib.DrawText($"Objects: {_visualBodies.Count}", 10, 65, InfoFontSize, Color.LightGray);
         Raylib.DrawText(_isPaused ? "PAUSED" : "RUNNING", 10, 90, InfoFontSize, _isPaused ? Color.Yellow : Color.Green);
         
-        Raylib.DrawText("Controls:", 10, ScreenHeight - 150, ControlsFontSize, Color.White);
-        Raylib.DrawText("  SPACE - Pause/Resume", 10, ScreenHeight - 125, ControlsItemFontSize, Color.LightGray);
-        Raylib.DrawText("  R - Reset", 10, ScreenHeight - 105, ControlsItemFontSize, Color.LightGray);
-        Raylib.DrawText("  B - Add Box", 10, ScreenHeight - 85, ControlsItemFontSize, Color.LightGray);
-        Raylib.DrawText("  C - Add Circle", 10, ScreenHeight - 65, ControlsItemFontSize, Color.LightGray);
+        Raylib.DrawText("Controls:", 10, ScreenHeight - 170, ControlsFontSize, Color.White);
+        Raylib.DrawText("  SPACE - Pause/Resume", 10, ScreenHeight - 145, ControlsItemFontSize, Color.LightGray);
+        Raylib.DrawText("  R - Reset", 10, ScreenHeight - 125, ControlsItemFontSize, Color.LightGray);
+        Raylib.DrawText("  B - Add Box", 10, ScreenHeight - 105, ControlsItemFontSize, Color.LightGray);
+        Raylib.DrawText("  C - Add Circle", 10, ScreenHeight - 85, ControlsItemFontSize, Color.LightGray);
+        Raylib.DrawText("  S - Add Star", 10, ScreenHeight - 65, ControlsItemFontSize, Color.LightGray);
         Raylib.DrawText("  Left Click & Drag - Apply Impulse", 10, ScreenHeight - 45, ControlsItemFontSize, Color.LightGray);
         Raylib.DrawText("  ESC - Exit", 10, ScreenHeight - 25, ControlsItemFontSize, Color.LightGray);
 
