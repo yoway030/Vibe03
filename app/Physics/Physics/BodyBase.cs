@@ -6,7 +6,7 @@ using static Box2D.NET.B2MathFunction;
 namespace Physics;
 
 /// <summary>
-/// 물리 바디??기본 구현
+/// 물리 바디의 기본 구현
 /// </summary>
 public abstract class BodyBase : IBody
 {
