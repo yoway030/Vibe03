@@ -1,5 +1,0 @@
-<Solution>
-  <Project Path="Physics/Physics.csproj" />
-  <Project Path="Physics_Sample/Physics_Sample.csproj" />
-  <Project Path="Physics_test/Physics_test.csproj" />
-</Solution>
