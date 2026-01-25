@@ -116,6 +116,24 @@ public class World
     }
 
     /// <summary>
+    /// 동적 삼각형 바디를 생성하여 월드에 추가합니다
+    /// </summary>
+    /// <param name="id">바디 식별자</param>
+    /// <param name="position">위치</param>
+    /// <param name="size">삼각형 크기</param>
+    /// <param name="density">밀도</param>
+    /// <param name="friction">마찰력</param>
+    /// <param name="restitution">반발력</param>
+    /// <returns>생성된 Triangle</returns>
+    public Triangle CreateDynamicTriangle(string id, Vector2 position, float size,
+        float density = 1.0f, float friction = 0.3f, float restitution = 0.5f)
+    {
+        var triangle = new Triangle(_worldId, id, position, size, density, friction, restitution);
+        _bodies[id] = triangle;
+        return triangle;
+    }
+
+    /// <summary>
     /// 바디를 ID로 가져옵니다.
     /// </summary>
     /// <param name="id">바디 식별자</param>

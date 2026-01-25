@@ -24,6 +24,7 @@ public class Program
     private const int InitialBoxCount = 10;
     private const int InitialCircleCount = 5;
     private const int InitialStarCount = 3;
+    private const int InitialTriangleCount = 4;
     
     // 지면 및 벽 크기
     private const float GroundWidth = 30f;
@@ -57,6 +58,13 @@ public class Program
     private const float StarOuterRadiusRange = 0.6f;
     private const int StarPointCountMin = 3;
     private const int StarPointCountMax = 4;
+    
+    private const float TriangleSpawnRangeX = 10f;
+    private const float TriangleSpawnOffsetX = 5f;
+    private const float TriangleSpawnRangeY = 10f;
+    private const float TriangleSpawnOffsetY = 5f;
+    private const float TriangleSizeMin = 0.5f;
+    private const float TriangleSizeRange = 0.7f;
     
     // 새 객체 생성 높이
     private const float SpawnHeight = 15f;
@@ -192,6 +200,25 @@ public class Program
             );
             _visualBodies.Add(new VisualBody(star, color));
         }
+
+        // 동적 삼각형들 생성
+        for (int i = 0; i < InitialTriangleCount; i++)
+        {
+            float x = rand.NextSingle() * TriangleSpawnRangeX - TriangleSpawnOffsetX;
+            float y = rand.NextSingle() * TriangleSpawnRangeY + TriangleSpawnOffsetY;
+            float size = rand.NextSingle() * TriangleSizeRange + TriangleSizeMin;
+            
+            string id = $"triangle{i}";
+            var triangle = _world.CreateDynamicTriangle(id, new Vector2(x, y), size, restitution: BouncyRestitution);
+            
+            Color color = new Color(
+                rand.Next(ColorMin, ColorMax),
+                rand.Next(ColorMin, ColorMax),
+                rand.Next(ColorMin, ColorMax),
+                ColorAlpha
+            );
+            _visualBodies.Add(new VisualBody(triangle, color));
+        }
     }
 
     private static void Update()
@@ -277,6 +304,29 @@ public class Program
             }
         }
 
+        if (Raylib.IsKeyPressed(KeyboardKey.T))
+        {
+            // 랜덤 삼각형 추가
+            Random rand = new Random();
+            float x = rand.NextSingle() * TriangleSpawnRangeX - TriangleSpawnOffsetX;
+            float y = SpawnHeight;
+            float size = rand.NextSingle() * TriangleSizeRange + TriangleSizeMin;
+            
+            string id = $"triangle{_visualBodies.Count}";
+            var triangle = _world?.CreateDynamicTriangle(id, new Vector2(x, y), size, restitution: BouncyRestitution);
+            
+            if (triangle != null)
+            {
+                Color color = new Color(
+                    rand.Next(ColorMin, ColorMax),
+                    rand.Next(ColorMin, ColorMax),
+                    rand.Next(ColorMin, ColorMax),
+                    ColorAlpha
+                );
+                _visualBodies.Add(new VisualBody(triangle, color));
+            }
+        }
+
         // 마우스 드래그로 물체에 힘 적용
         HandleMouseDrag();
 
@@ -307,7 +357,8 @@ public class Program
                 float distance = Vector2.Distance(worldPos, body.Position);
                 float threshold = body is Box box ? Math.Max(box.Width, box.Height) : 
                                  body is Circle circle ? circle.Radius * CircleThresholdMultiplier :
-                                 body is Star star ? star.OuterRadius * CircleThresholdMultiplier : DragThresholdDefault;
+                                 body is Star star ? star.OuterRadius * CircleThresholdMultiplier :
+                                 body is Triangle triangle ? triangle.Size * CircleThresholdMultiplier : DragThresholdDefault;
                 
                 if (distance < threshold)
                 {
@@ -407,6 +458,26 @@ public class Program
                     Raylib.DrawTriangle(screenPos, vertices[nextIndex], vertices[i], visualBody.Color);
                 }
             }
+            else if (body is Triangle triangle)
+            {
+                // 삼각형의 정점들을 계산하여 그리기
+                float size = triangle.Size * PixelsPerMeter;
+                
+                Vector2 v0 = new Vector2(
+                    screenPos.X + MathF.Cos(angle) * 0 - MathF.Sin(angle) * size,
+                    screenPos.Y - MathF.Sin(angle) * 0 - MathF.Cos(angle) * size
+                );
+                Vector2 v1 = new Vector2(
+                    screenPos.X + MathF.Cos(angle) * (-size * 0.866f) - MathF.Sin(angle) * (-size * 0.5f),
+                    screenPos.Y - MathF.Sin(angle) * (-size * 0.866f) - MathF.Cos(angle) * (-size * 0.5f)
+                );
+                Vector2 v2 = new Vector2(
+                    screenPos.X + MathF.Cos(angle) * (size * 0.866f) - MathF.Sin(angle) * (-size * 0.5f),
+                    screenPos.Y - MathF.Sin(angle) * (size * 0.866f) - MathF.Cos(angle) * (-size * 0.5f)
+                );
+                
+                Raylib.DrawTriangle(v0, v1, v2, visualBody.Color);
+            }
             else if (body is StaticBox staticBox)
             {
                 float width = staticBox.Width * PixelsPerMeter;
@@ -451,12 +522,13 @@ public class Program
         Raylib.DrawText($"Objects: {_visualBodies.Count}", 10, 65, InfoFontSize, Color.LightGray);
         Raylib.DrawText(_isPaused ? "PAUSED" : "RUNNING", 10, 90, InfoFontSize, _isPaused ? Color.Yellow : Color.Green);
         
-        Raylib.DrawText("Controls:", 10, ScreenHeight - 170, ControlsFontSize, Color.White);
-        Raylib.DrawText("  SPACE - Pause/Resume", 10, ScreenHeight - 145, ControlsItemFontSize, Color.LightGray);
-        Raylib.DrawText("  R - Reset", 10, ScreenHeight - 125, ControlsItemFontSize, Color.LightGray);
-        Raylib.DrawText("  B - Add Box", 10, ScreenHeight - 105, ControlsItemFontSize, Color.LightGray);
-        Raylib.DrawText("  C - Add Circle", 10, ScreenHeight - 85, ControlsItemFontSize, Color.LightGray);
-        Raylib.DrawText("  S - Add Star", 10, ScreenHeight - 65, ControlsItemFontSize, Color.LightGray);
+        Raylib.DrawText("Controls:", 10, ScreenHeight - 190, ControlsFontSize, Color.White);
+        Raylib.DrawText("  SPACE - Pause/Resume", 10, ScreenHeight - 165, ControlsItemFontSize, Color.LightGray);
+        Raylib.DrawText("  R - Reset", 10, ScreenHeight - 145, ControlsItemFontSize, Color.LightGray);
+        Raylib.DrawText("  B - Add Box", 10, ScreenHeight - 125, ControlsItemFontSize, Color.LightGray);
+        Raylib.DrawText("  C - Add Circle", 10, ScreenHeight - 105, ControlsItemFontSize, Color.LightGray);
+        Raylib.DrawText("  S - Add Star", 10, ScreenHeight - 85, ControlsItemFontSize, Color.LightGray);
+        Raylib.DrawText("  T - Add Triangle", 10, ScreenHeight - 65, ControlsItemFontSize, Color.LightGray);
         Raylib.DrawText("  Left Click & Drag - Apply Impulse", 10, ScreenHeight - 45, ControlsItemFontSize, Color.LightGray);
         Raylib.DrawText("  ESC - Exit", 10, ScreenHeight - 25, ControlsItemFontSize, Color.LightGray);
 
