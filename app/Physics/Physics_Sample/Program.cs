@@ -63,8 +63,10 @@ public class Program
     private const float TriangleSpawnOffsetX = 5f;
     private const float TriangleSpawnRangeY = 10f;
     private const float TriangleSpawnOffsetY = 5f;
-    private const float TriangleSizeMin = 0.5f;
-    private const float TriangleSizeRange = 0.7f;
+    private const float TriangleWidthMin = 0.5f;
+    private const float TriangleWidthRange = 1.0f;
+    private const float TriangleHeightMin = 0.5f;
+    private const float TriangleHeightRange = 1.0f;
     
     // 새 객체 생성 높이
     private const float SpawnHeight = 15f;
@@ -206,10 +208,11 @@ public class Program
         {
             float x = rand.NextSingle() * TriangleSpawnRangeX - TriangleSpawnOffsetX;
             float y = rand.NextSingle() * TriangleSpawnRangeY + TriangleSpawnOffsetY;
-            float size = rand.NextSingle() * TriangleSizeRange + TriangleSizeMin;
+            float width = rand.NextSingle() * TriangleWidthRange + TriangleWidthMin;
+            float height = rand.NextSingle() * TriangleHeightRange + TriangleHeightMin;
             
             string id = $"triangle{i}";
-            var triangle = _world.CreateDynamicTriangle(id, new Vector2(x, y), size, restitution: BouncyRestitution);
+            var triangle = _world.CreateDynamicTriangle(id, new Vector2(x, y), width, height, restitution: BouncyRestitution);
             
             Color color = new Color(
                 rand.Next(ColorMin, ColorMax),
@@ -310,10 +313,11 @@ public class Program
             Random rand = new Random();
             float x = rand.NextSingle() * TriangleSpawnRangeX - TriangleSpawnOffsetX;
             float y = SpawnHeight;
-            float size = rand.NextSingle() * TriangleSizeRange + TriangleSizeMin;
+            float width = rand.NextSingle() * TriangleWidthRange + TriangleWidthMin;
+            float height = rand.NextSingle() * TriangleHeightRange + TriangleHeightMin;
             
             string id = $"triangle{_visualBodies.Count}";
-            var triangle = _world?.CreateDynamicTriangle(id, new Vector2(x, y), size, restitution: BouncyRestitution);
+            var triangle = _world?.CreateDynamicTriangle(id, new Vector2(x, y), width, height, restitution: BouncyRestitution);
             
             if (triangle != null)
             {
@@ -358,7 +362,7 @@ public class Program
                 float threshold = body is Box box ? Math.Max(box.Width, box.Height) : 
                                  body is Circle circle ? circle.Radius * CircleThresholdMultiplier :
                                  body is Star star ? star.OuterRadius * CircleThresholdMultiplier :
-                                 body is Triangle triangle ? triangle.Size * CircleThresholdMultiplier : DragThresholdDefault;
+                                 body is Triangle triangle ? Math.Max(triangle.Width, triangle.Height) : DragThresholdDefault;
                 
                 if (distance < threshold)
                 {
@@ -461,19 +465,20 @@ public class Program
             else if (body is Triangle triangle)
             {
                 // 삼각형의 정점들을 계산하여 그리기
-                float size = triangle.Size * PixelsPerMeter;
+                float halfWidth = triangle.Width * PixelsPerMeter / 2;
+                float halfHeight = triangle.Height * PixelsPerMeter / 2;
                 
                 Vector2 v0 = new Vector2(
-                    screenPos.X + MathF.Cos(angle) * 0 - MathF.Sin(angle) * size,
-                    screenPos.Y - MathF.Sin(angle) * 0 - MathF.Cos(angle) * size
+                    screenPos.X + MathF.Cos(angle) * 0 - MathF.Sin(angle) * halfHeight,
+                    screenPos.Y - MathF.Sin(angle) * 0 - MathF.Cos(angle) * halfHeight
                 );
                 Vector2 v1 = new Vector2(
-                    screenPos.X + MathF.Cos(angle) * (-size * 0.866f) - MathF.Sin(angle) * (-size * 0.5f),
-                    screenPos.Y - MathF.Sin(angle) * (-size * 0.866f) - MathF.Cos(angle) * (-size * 0.5f)
+                    screenPos.X + MathF.Cos(angle) * (-halfWidth) - MathF.Sin(angle) * (-halfHeight),
+                    screenPos.Y - MathF.Sin(angle) * (-halfWidth) - MathF.Cos(angle) * (-halfHeight)
                 );
                 Vector2 v2 = new Vector2(
-                    screenPos.X + MathF.Cos(angle) * (size * 0.866f) - MathF.Sin(angle) * (-size * 0.5f),
-                    screenPos.Y - MathF.Sin(angle) * (size * 0.866f) - MathF.Cos(angle) * (-size * 0.5f)
+                    screenPos.X + MathF.Cos(angle) * halfWidth - MathF.Sin(angle) * (-halfHeight),
+                    screenPos.Y - MathF.Sin(angle) * halfWidth - MathF.Cos(angle) * (-halfHeight)
                 );
                 
                 Raylib.DrawTriangle(v0, v1, v2, visualBody.Color);

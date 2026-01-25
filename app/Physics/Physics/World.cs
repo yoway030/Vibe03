@@ -120,15 +120,16 @@ public class World
     /// </summary>
     /// <param name="id">바디 식별자</param>
     /// <param name="position">위치</param>
-    /// <param name="size">삼각형 크기</param>
+    /// <param name="width">삼각형 너비</param>
+    /// <param name="height">삼각형 높이</param>
     /// <param name="density">밀도</param>
     /// <param name="friction">마찰력</param>
     /// <param name="restitution">반발력</param>
     /// <returns>생성된 Triangle</returns>
-    public Triangle CreateDynamicTriangle(string id, Vector2 position, float size,
+    public Triangle CreateDynamicTriangle(string id, Vector2 position, float width, float height,
         float density = 1.0f, float friction = 0.3f, float restitution = 0.5f)
     {
-        var triangle = new Triangle(_worldId, id, position, size, density, friction, restitution);
+        var triangle = new Triangle(_worldId, id, position, width, height, density, friction, restitution);
         _bodies[id] = triangle;
         return triangle;
     }

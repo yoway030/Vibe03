@@ -12,10 +12,14 @@ namespace Physics;
 /// </summary>
 public class Triangle : BodyBase
 {
-    /// <summary>삼각형의 기본 크기</summary>
-    public const float DefaultSize = 1.0f;
+    /// <summary>삼각형의 기본 너비</summary>
+    public const float DefaultWidth = 1.0f;
     
-    public float Size { get; }
+    /// <summary>삼각형의 기본 높이</summary>
+    public const float DefaultHeight = 1.0f;
+    
+    public float Width { get; }
+    public float Height { get; }
     public float Density { get; }
     public float Friction { get; }
     public float Restitution { get; }
@@ -26,7 +30,8 @@ public class Triangle : BodyBase
     /// <param name="worldId">월드 ID</param>
     /// <param name="id">바디 식별자</param>
     /// <param name="position">위치</param>
-    /// <param name="size">삼각형 크기 (중심에서 정점까지 거리)</param>
+    /// <param name="width">삼각형 너비</param>
+    /// <param name="height">삼각형 높이</param>
     /// <param name="density">밀도</param>
     /// <param name="friction">마찰력</param>
     /// <param name="restitution">반발력</param>
@@ -34,13 +39,15 @@ public class Triangle : BodyBase
         B2WorldId worldId,
         string id, 
         Vector2 position, 
-        float size = DefaultSize,
+        float width = DefaultWidth,
+        float height = DefaultHeight,
         float density = PhysicsConfig.DefaultDensity, 
         float friction = PhysicsConfig.DefaultFriction, 
         float restitution = PhysicsConfig.DefaultRestitution) 
         : base(id)
     {
-        Size = size;
+        Width = width;
+        Height = height;
         Density = density;
         Friction = friction;
         Restitution = restitution;
@@ -52,11 +59,12 @@ public class Triangle : BodyBase
 
         _bodyId = b2CreateBody(worldId, ref bodyDef);
 
-        // 정삼각형 정점 생성 (위쪽 정점이 12시 방향)
+        // 다양한 형태의 삼각형 정점 생성 (위쪽 정점이 12시 방향)
+        float halfWidth = width / 2;
         B2Vec2[] vertices = new B2Vec2[3];
-        vertices[0] = new B2Vec2(0, size);                              // 위
-        vertices[1] = new B2Vec2(-size * 0.866f, -size * 0.5f);        // 왼쪽 아래
-        vertices[2] = new B2Vec2(size * 0.866f, -size * 0.5f);         // 오른쪽 아래
+        vertices[0] = new B2Vec2(0, height * 0.5f);           // 위
+        vertices[1] = new B2Vec2(-halfWidth, -height * 0.5f); // 왼쪽 아래
+        vertices[2] = new B2Vec2(halfWidth, -height * 0.5f);  // 오른쪽 아래
 
         // 폴리곤 셰이프 생성
         var hull = new B2Hull();
