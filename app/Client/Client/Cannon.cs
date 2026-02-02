@@ -53,6 +53,11 @@ public class Cannon
     public Vector3 Color { get; }
 
     /// <summary>
+    /// 대포의 누적 점수
+    /// </summary>
+    public int Score { get; private set; }
+
+    /// <summary>
     /// 발사 간격 (초)
     /// </summary>
     public float FireInterval { get; }
@@ -83,6 +88,11 @@ public class Cannon
     public const float DefaultAngleSpeed = MathF.PI / 2; // 90도/초
 
     /// <summary>
+    /// 포신 길이 (월드 좌표)
+    /// </summary>
+    public const float BarrelLength = GameSimulation.CellSize * 2.5f;
+
+    /// <summary>
     /// 미리 생성된 100개의 색상 테이블
     /// </summary>
     private static readonly Vector3[] ColorTable = GenerateColorTable();
@@ -92,6 +102,7 @@ public class Cannon
         Id = id;
         Position = position;
         Color = color;
+        Score = 0;
         FireInterval = fireInterval;
         ProjectileSpeed = projectileSpeed;
         _lastFireTime = 0;
@@ -153,10 +164,22 @@ public class Cannon
             _lastFireTime = currentTime;
             Vector2 fireDirection = GetCurrentFireDirection();
             Vector2 velocity = fireDirection * ProjectileSpeed;
-            return new Projectile(projectileId, Id, Position, velocity);
+            
+            // 포신 끝에서 포탄 발사
+            Vector2 barrelEnd = Position + fireDirection * BarrelLength;
+            return new Projectile(projectileId, Id, barrelEnd, velocity);
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// 점수 증가
+    /// </summary>
+    /// <param name="points">증가시킬 점수 (중립 영역 획득: 1, 타 영역 탈환: 2)</param>
+    public void AddScore(int points)
+    {
+        Score += points;
     }
 
     /// <summary>

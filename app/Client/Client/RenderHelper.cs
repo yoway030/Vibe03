@@ -52,17 +52,5 @@ public static class RenderHelper
             (int)height,
             color
         );
-        
-        // 외곽선 (회전 강조)
-        if (scaleX > 0.1f)
-        {
-            Raylib.DrawRectangleLines(
-                (int)(screenPos.X - width / 2),
-                (int)(screenPos.Y - height / 2),
-                (int)width,
-                (int)height,
-                new Color(255, 255, 255, (int)(100 * (1.0f - scaleX)))
-            );
-        }
     }
 }

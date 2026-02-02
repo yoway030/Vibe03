@@ -107,7 +107,8 @@ public class GameSimulationThread
             Cannons = new CannonState[_simulation.Cannons.Length],
             Cells = new CellState?[_simulation.GridSize * _simulation.GridSize],
             Projectiles = new List<ProjectileState>(_simulation.Projectiles.Count),
-            Explosions = new List<ExplosionState>(_simulation.Explosions.Count)
+            Explosions = new List<ExplosionState>(_simulation.Explosions.Count),
+            MergedRegions = new List<MergedRegionState>(_simulation.MergedRegions.Count)
         };
 
         // 대포 상태 복사
@@ -119,7 +120,8 @@ public class GameSimulationThread
                 Id = cannon.Id,
                 Position = cannon.Position,
                 Color = cannon.Color,
-                FireDirection = cannon.GetCurrentFireDirection()
+                FireDirection = cannon.GetCurrentFireDirection(),
+                Score = cannon.Score
             };
         }
 
@@ -157,6 +159,7 @@ public class GameSimulationThread
             {
                 CannonId = projectile.CannonId,
                 Position = projectile.Position,
+                StartPosition = projectile.StartPosition,
                 Radius = projectile.Radius
             });
         }
@@ -169,6 +172,19 @@ public class GameSimulationThread
                 Position = explosion.Position,
                 Color = explosion.Color,
                 StartTime = explosion.StartTime
+            });
+        }
+
+        // 병합 영역 상태 복사
+        foreach (var region in _simulation.MergedRegions)
+        {
+            newState.MergedRegions.Add(new MergedRegionState
+            {
+                OwnerId = region.OwnerId,
+                StartX = region.StartX,
+                StartY = region.StartY,
+                Width = region.Width,
+                Height = region.Height
             });
         }
 

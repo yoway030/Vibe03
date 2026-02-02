@@ -28,6 +28,11 @@ public class GameState
     public List<ExplosionState> Explosions { get; set; }
 
     /// <summary>
+    /// 병합된 영역 정보 (렌더링 최적화용)
+    /// </summary>
+    public List<MergedRegionState> MergedRegions { get; set; }
+
+    /// <summary>
     /// 현재 게임 시간
     /// </summary>
     public float CurrentTime { get; set; }
@@ -43,6 +48,7 @@ public class GameState
         Cells = Array.Empty<CellState?>();
         Projectiles = new List<ProjectileState>();
         Explosions = new List<ExplosionState>();
+        MergedRegions = new List<MergedRegionState>();
         CurrentTime = 0;
         GridSize = 0;
     }
@@ -57,6 +63,7 @@ public struct CannonState
     public Vector2 Position;
     public Vector3 Color;
     public Vector2 FireDirection;
+    public int Score;
 }
 
 /// <summary>
@@ -79,6 +86,7 @@ public struct ProjectileState
 {
     public int CannonId;
     public Vector2 Position;
+    public Vector2 StartPosition;
     public float Radius;
 }
 
@@ -90,4 +98,16 @@ public struct ExplosionState
     public Vector2 Position;
     public Vector3 Color;
     public float StartTime;
+}
+
+/// <summary>
+/// 병합된 영역 상태
+/// </summary>
+public struct MergedRegionState
+{
+    public int OwnerId;
+    public int StartX;
+    public int StartY;
+    public int Width;
+    public int Height;
 }

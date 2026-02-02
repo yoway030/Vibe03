@@ -216,4 +216,15 @@ public class Camera
         if (_scaleFactor < 0.2f) return 2;        // 20% 이하: 2개 중 1개
         return 1;                                 // 20% 이상: 모든 셀
     }
+
+    /// <summary>
+    /// LOD 레벨 계산 (폴리곤 병합용)
+    /// </summary>
+    public int CalculateLodLevel()
+    {
+        if (_scaleFactor < 0.05f) return 4;       // 5% 이하: 8x8 병합
+        if (_scaleFactor < 0.1f) return 3;        // 10% 이하: 4x4 병합
+        if (_scaleFactor < 0.2f) return 2;        // 20% 이하: 2x2 병합
+        return 1;                                 // 20% 이상: 개별 셀
+    }
 }

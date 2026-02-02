@@ -23,6 +23,11 @@ public class Projectile
     public Vector2 Position { get; set; }
 
     /// <summary>
+    /// 발사 위치 (사거리 계산용)
+    /// </summary>
+    public Vector2 StartPosition { get; }
+
+    /// <summary>
     /// 속도
     /// </summary>
     public Vector2 Velocity { get; set; }
@@ -52,11 +57,17 @@ public class Projectile
     /// </summary>
     public const float DefaultRadius = 10.0f;
 
+    /// <summary>
+    /// 최대 사거리 (이 거리 이상 날아가면 소멸)
+    /// </summary>
+    public const float MaxRange = 20000.0f;
+
     public Projectile(string id, int cannonId, Vector2 position, Vector2 velocity, float damage = DefaultDamage, float radius = DefaultRadius)
     {
         Id = id;
         CannonId = cannonId;
         Position = position;
+        StartPosition = position;
         Velocity = velocity;
         Damage = damage;
         Radius = radius;
@@ -72,6 +83,15 @@ public class Projectile
         if (!IsActive) return;
 
         Position += Velocity * deltaTime;
+    }
+
+    /// <summary>
+    /// 사거리 초과 여부 확인
+    /// </summary>
+    public bool IsOutOfRange()
+    {
+        float distanceTraveled = Vector2.Distance(Position, StartPosition);
+        return distanceTraveled >= MaxRange;
     }
 
     /// <summary>

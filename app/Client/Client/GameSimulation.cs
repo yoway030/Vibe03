@@ -10,7 +10,7 @@ public class GameSimulation
     /// <summary>
     /// 게임 공간 크기
     /// </summary>
-    public const float WorldSize = 10000.0f;
+    public const float WorldSize = 100000.0f;
 
     /// <summary>
     /// 대포 개수
@@ -20,12 +20,12 @@ public class GameSimulation
     /// <summary>
     /// 대포가 배치된 원의 반지름
     /// </summary>
-    public const float CannonRadius = 4500.0f;
+    public const float CannonRadius = 45000.0f;
 
     /// <summary>
-    /// 영역 상자 크기
+    /// 영역 상자 크기 (성능을 위해 500으로 설정)
     /// </summary>
-    public const float CellSize = 10.0f;
+    public const float CellSize = 500.0f;
 
     /// <summary>
     /// 게임 중심
@@ -51,6 +51,11 @@ public class GameSimulation
     /// 활성 폭발 이펙트들
     /// </summary>
     public List<Explosion> Explosions { get; }
+
+    /// <summary>
+    /// 병합된 영역 정보 (충돌 최적화용)
+    /// </summary>
+    public List<MergedRegion> MergedRegions { get; private set; }
 
     /// <summary>
     /// 그리드 크기 (한 변의 셀 개수)
@@ -104,8 +109,80 @@ public class GameSimulation
 
         Projectiles = new List<Projectile>();
         Explosions = new List<Explosion>();
+        MergedRegions = new List<MergedRegion>();
         CurrentTime = 0;
         _projectileCounter = 0;
+        
+        // 초기 병합 영역 생성
+        RebuildMergedRegions();
+    }
+
+    /// <summary>
+    /// 병합 영역 재구성 (탐욕적 알고리즘)
+    /// </summary>
+    private void RebuildMergedRegions()
+    {
+        MergedRegions.Clear();
+        var processed = new bool[GridSize, GridSize];
+
+        for (int y = 0; y < GridSize; y++)
+        {
+            for (int x = 0; x < GridSize; x++)
+            {
+                if (processed[x, y]) continue;
+                
+                var cell = Cells[x, y];
+                if (cell == null) continue;
+
+                int owner = cell.OwnerCannonId;
+
+                // 가로 방향 병합
+                int width = 1;
+                while (x + width < GridSize && !processed[x + width, y])
+                {
+                    var checkCell = Cells[x + width, y];
+                    if (checkCell == null || checkCell.OwnerCannonId != owner) break;
+                    width++;
+                }
+
+                // 세로 방향 병합
+                int height = 1;
+                bool canExtend = true;
+                
+                while (y + height < GridSize && canExtend)
+                {
+                    for (int dx = 0; dx < width; dx++)
+                    {
+                        if (processed[x + dx, y + height])
+                        {
+                            canExtend = false;
+                            break;
+                        }
+                        
+                        var checkCell = Cells[x + dx, y + height];
+                        if (checkCell == null || checkCell.OwnerCannonId != owner)
+                        {
+                            canExtend = false;
+                            break;
+                        }
+                    }
+                    
+                    if (canExtend) height++;
+                }
+
+                // 병합 영역 추가
+                MergedRegions.Add(new MergedRegion(owner, x, y, width, height, CellSize));
+
+                // 처리 표시
+                for (int dy = 0; dy < height; dy++)
+                {
+                    for (int dx = 0; dx < width; dx++)
+                    {
+                        processed[x + dx, y + dy] = true;
+                    }
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -168,11 +245,30 @@ public class GameSimulation
     }
 
     /// <summary>
-    /// 포탄과 영역 상자의 충돌 검사 (최적화)
+    /// 포탄과 영역 상자의 충돌 검사 (병합 영역 최적화)
     /// </summary>
     private bool CheckProjectileCollision(Projectile projectile)
     {
-        // 포탄 위치에서 가장 가까운 셀 계산
+        // 1단계: 병합 영역과 먼저 충돌 검사 (빠름)
+        MergedRegion? hitRegion = null;
+        
+        foreach (var region in MergedRegions)
+        {
+            // 자기 영역은 스킵
+            if (region.OwnerId == projectile.CannonId)
+                continue;
+                
+            if (region.CheckCollision(projectile.Position, projectile.Radius))
+            {
+                hitRegion = region;
+                break;
+            }
+        }
+
+        if (hitRegion == null)
+            return false;
+
+        // 2단계: 병합 영역 내에서 정확한 셀 찾기
         int cellX = (int)(projectile.Position.X / CellSize);
         int cellY = (int)(projectile.Position.Y / CellSize);
 
@@ -180,10 +276,9 @@ public class GameSimulation
         if (cellX < 0 || cellX >= GridSize || cellY < 0 || cellY >= GridSize)
             return false;
 
-        // 정확한 충돌 범위 계산 (포탄 반지름 기반)
+        // 포탄 반지름 기반으로 주변 셀 확인
         int checkRadius = (int)Math.Ceiling(projectile.Radius / CellSize);
         
-        // 최소 범위로 주변 셀만 확인
         for (int dx = -checkRadius; dx <= checkRadius; dx++)
         {
             for (int dy = -checkRadius; dy <= checkRadius; dy++)
@@ -195,7 +290,6 @@ public class GameSimulation
                 {
                     var cell = Cells[x, y];
                     
-                    // null 체크 (원 밖 영역)
                     if (cell == null)
                         continue;
                     
@@ -205,7 +299,24 @@ public class GameSimulation
 
                     if (projectile.CheckCollision(cell.Position, cell.Size))
                     {
+                        int previousOwnerId = cell.OwnerCannonId;
                         bool conquered = cell.TakeDamage(projectile.Damage, projectile.CannonId, CurrentTime);
+                        
+                        // 영역 획득 시 점수 부여
+                        if (conquered)
+                        {
+                            if (previousOwnerId == -1)
+                            {
+                                Cannons[projectile.CannonId].AddScore(1);
+                            }
+                            else
+                            {
+                                Cannons[projectile.CannonId].AddScore(2);
+                            }
+                            
+                            // 병합 영역 재구성 (영역 변경됨)
+                            RebuildMergedRegions();
+                        }
                         
                         // 폭발 이펙트 생성
                         var cannonColor = Cannons[projectile.CannonId].Color;

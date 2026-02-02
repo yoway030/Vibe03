@@ -46,12 +46,6 @@ public class Renderer
         Raylib.BeginDrawing();
         Raylib.ClearBackground(Color.Black);
 
-        // 게임 영역 테두리
-        Raylib.DrawRectangleLines(OffsetX - 2, OffsetY - 2, 
-            (int)(GameSimulation.WorldSize * camera.ScaleFactor) + 4, 
-            (int)(GameSimulation.WorldSize * camera.ScaleFactor) + 4, 
-            Color.White);
-
         // 영역 상자 렌더링
         RenderCells(gameState, camera);
 
@@ -71,102 +65,80 @@ public class Renderer
     }
 
     /// <summary>
-    /// 영역 셀 렌더링 (최적화: 배치 렌더링 + LOD + 카드 뒤집기 효과)
+    /// 영역 셀 렌더링 (GameSimulation에서 계산된 병합 영역 사용)
     /// </summary>
     private static void RenderCells(GameState gameState, Camera camera)
     {
-        // LOD 계산
-        int lodSkip = camera.CalculateLodSkip();
-
-        // 뷰포트 계산
-        var (minX, maxX, minY, maxY) = camera.CalculateViewport(
-            ScreenWidth, ScreenHeight, 
-            GameSimulation.CellSize, 
-            gameState.GridSize, gameState.GridSize, 
-            lodSkip);
-
-        // 대포별 영역 그룹화 (배치 렌더링)
-        var cannonCells = new Dictionary<int, List<Rectangle>>(GameSimulation.CannonCount + 1);
+        // 대포별 폴리곤 그룹화
+        var cannonPolygons = new Dictionary<int, List<Rectangle>>(GameSimulation.CannonCount + 1);
         var cannonColors = new Dictionary<int, Color>(GameSimulation.CannonCount + 1);
 
-        // 셀을 대포별로 그룹화 (뷰포트 내부만 + LOD 적용)
-        for (int x = minX; x <= maxX; x += lodSkip)
+        // GameSimulation에서 이미 계산된 병합 영역 사용
+        foreach (var region in gameState.MergedRegions)
         {
-            for (int y = minY; y <= maxY; y += lodSkip)
+            // 색상 초기화
+            if (!cannonColors.ContainsKey(region.OwnerId))
             {
-                int index = y * gameState.GridSize + x;
-                var cellState = gameState.Cells[index];
-                
-                // null 체크 (원 밖 영역)
-                if (cellState == null) continue;
-                
-                var cell = cellState.Value;
-                Vector2 screenPos = camera.WorldToScreen(cell.Position);
-                int owner = cell.OwnerCannonId;
-                
-                // 애니메이션 중이면 카드 뒤집기 효과로 개별 렌더링 (LOD가 높을 때만)
-                float elapsed = gameState.CurrentTime - cell.TransitionStartTime;
-                float flipProgress = Math.Min(elapsed / TerritoryCell.FlipDuration, 1.0f);
-                bool isFlipping = flipProgress < 1.0f && cell.PreviousOwnerCannonId != cell.OwnerCannonId;
-                
-                // LOD가 높을 때(확대 시)만 애니메이션 표시
-                if (isFlipping && lodSkip == 1)
+                if (region.OwnerId == -1)
                 {
-                    RenderHelper.RenderFlippingCell(cell, screenPos, camera, gameState, lodSkip);
+                    cannonColors[region.OwnerId] = new Color(40, 40, 40, 255);
                 }
                 else
                 {
-                    // 색상 딕셔너리에 없으면 추가 (지연 초기화)
-                    if (!cannonColors.ContainsKey(owner))
-                    {
-                        if (owner == -1)
-                        {
-                            cannonColors[owner] = new Color(40, 40, 40, 255);
-                        }
-                        else
-                        {
-                            var cannonColor = gameState.Cannons[owner].Color;
-                            cannonColors[owner] = new Color(
-                                (int)(cannonColor.X * 255),
-                                (int)(cannonColor.Y * 255),
-                                (int)(cannonColor.Z * 255),
-                                255
-                            );
-                        }
-                        cannonCells[owner] = new List<Rectangle>();
-                    }
-                    
-                    // 배치 렌더링을 위해 그룹에 추가
-                    float cellScreenSize = camera.WorldToScreenSize(cell.Size * lodSkip);
-                    Rectangle rect = new Rectangle(
-                        screenPos.X - cellScreenSize / 2,
-                        screenPos.Y - cellScreenSize / 2,
-                        cellScreenSize,
-                        cellScreenSize
+                    var cannonColor = gameState.Cannons[region.OwnerId].Color;
+                    cannonColors[region.OwnerId] = new Color(
+                        (int)(cannonColor.X * 255),
+                        (int)(cannonColor.Y * 255),
+                        (int)(cannonColor.Z * 255),
+                        255
                     );
-                    cannonCells[owner].Add(rect);
                 }
+                cannonPolygons[region.OwnerId] = new List<Rectangle>();
             }
+
+            // 병합된 사각형을 월드 좌표로 계산
+            Vector2 worldPos = new Vector2(
+                region.StartX * GameSimulation.CellSize + (region.Width * GameSimulation.CellSize) / 2,
+                region.StartY * GameSimulation.CellSize + (region.Height * GameSimulation.CellSize) / 2
+            );
+            Vector2 screenPos = camera.WorldToScreen(worldPos);
+            float screenWidth = camera.WorldToScreenSize(region.Width * GameSimulation.CellSize);
+            float screenHeight = camera.WorldToScreenSize(region.Height * GameSimulation.CellSize);
+
+            // 화면 밖이면 스킵
+            if (screenPos.X + screenWidth / 2 < 0 || screenPos.X - screenWidth / 2 > ScreenWidth ||
+                screenPos.Y + screenHeight / 2 < 0 || screenPos.Y - screenHeight / 2 > ScreenHeight)
+                continue;
+
+            // 1픽셀 오버랩으로 검은색 간격 제거
+            Rectangle rect = new Rectangle(
+                screenPos.X - screenWidth / 2 - 0.5f,
+                screenPos.Y - screenHeight / 2 - 0.5f,
+                screenWidth + 1.0f,
+                screenHeight + 1.0f
+            );
+
+            cannonPolygons[region.OwnerId].Add(rect);
         }
 
-        // 대포별로 배치 렌더링
-        foreach (var kvp in cannonCells)
+        // 대포별로 병합된 폴리곤 렌더링
+        foreach (var kvp in cannonPolygons)
         {
             int owner = kvp.Key;
-            var rects = kvp.Value;
+            var polygons = kvp.Value;
             
-            if (rects.Count == 0) continue;
+            if (polygons.Count == 0) continue;
 
             Color color = cannonColors[owner];
             
-            // 같은 색상의 사각형들을 한번에 그리기
-            foreach (var rect in rects)
+            // 병합된 폴리곤들을 한번에 그리기 (간격 없이)
+            foreach (var rect in polygons)
             {
                 Raylib.DrawRectangle(
                     (int)rect.X,
                     (int)rect.Y,
-                    (int)rect.Width,
-                    (int)rect.Height,
+                    (int)Math.Ceiling(rect.Width),
+                    (int)Math.Ceiling(rect.Height),
                     color
                 );
             }
@@ -195,20 +167,11 @@ public class Renderer
             // 1. 포대 베이스 (원형) - CellSize 기준으로 크기 조정
             float baseRadius = camera.WorldToScreenSize(GameSimulation.CellSize * 1.5f);
             Raylib.DrawCircle((int)screenPos.X, (int)screenPos.Y, baseRadius, new Color(60, 60, 60, 255));
-            Raylib.DrawCircleLines((int)screenPos.X, (int)screenPos.Y, baseRadius, color);
 
             // 2. 포신 (선형으로 표현) - CellSize 기준으로 크기 조정
-            float barrelLength = camera.WorldToScreenSize(GameSimulation.CellSize * 4f);
+            float barrelLength = camera.WorldToScreenSize(GameSimulation.CellSize * 2.5f);
             float barrelWidth = camera.WorldToScreenSize(GameSimulation.CellSize * 0.75f);
             Vector2 barrelEnd = screenPos + fireDirection * barrelLength;
-            
-            // 포신 그림자/외곽
-            Raylib.DrawLineEx(
-                new Vector2(screenPos.X, screenPos.Y),
-                new Vector2(barrelEnd.X, barrelEnd.Y),
-                barrelWidth + camera.WorldToScreenSize(GameSimulation.CellSize * 0.4f),
-                new Color(40, 40, 40, 255)
-            );
             
             // 포신 본체
             Raylib.DrawLineEx(
@@ -219,9 +182,7 @@ public class Renderer
             );
 
             // 포신 끝부분 (색상으로 강조)
-            Raylib.DrawCircle((int)barrelEnd.X, (int)barrelEnd.Y, 
-                barrelWidth / 2 + camera.WorldToScreenSize(GameSimulation.CellSize * 0.4f), color);
-            Raylib.DrawCircle((int)barrelEnd.X, (int)barrelEnd.Y, barrelWidth / 2, new Color(30, 30, 30, 255));
+            Raylib.DrawCircle((int)barrelEnd.X, (int)barrelEnd.Y, barrelWidth / 2, color);
 
             // 3. 포탑 중심부 (색상)
             Raylib.DrawCircle((int)screenPos.X, (int)screenPos.Y, baseRadius * 0.6f, color);
@@ -253,33 +214,12 @@ public class Renderer
 
             float radius = camera.WorldToScreenSize(projectile.Radius);
 
-            // 외곽 글로우 효과
-            Raylib.DrawCircle(
-                (int)screenPos.X,
-                (int)screenPos.Y,
-                radius + 1.5f,
-                new Color(
-                    Math.Min(255, (int)(cannonColor.X * 255 * 1.2f)),
-                    Math.Min(255, (int)(cannonColor.Y * 255 * 1.2f)),
-                    Math.Min(255, (int)(cannonColor.Z * 255 * 1.2f)),
-                    150
-                )
-            );
-
-            // 메인 포탄
+            // 포탄 렌더링
             Raylib.DrawCircle(
                 (int)screenPos.X, 
                 (int)screenPos.Y, 
                 radius,
                 brightColor
-            );
-
-            // 중심부 하이라이트
-            Raylib.DrawCircle(
-                (int)screenPos.X,
-                (int)screenPos.Y,
-                radius * 0.5f,
-                new Color(255, 255, 255, 200)
             );
         }
     }
@@ -360,32 +300,31 @@ public class Renderer
         Raylib.DrawText($"중립 영역: {stats[-1]}", uiX, uiY, 18, Color.Gray);
         uiY += 30;
 
-        Raylib.DrawText("상위 대포:", uiX, uiY, 18, Color.White);
+        Raylib.DrawText("상위 대포 (영역/점수):", uiX, uiY, 18, Color.White);
         uiY += 25;
 
-        var topCannons = stats
-            .Where(kv => kv.Key >= 0)
-            .OrderByDescending(kv => kv.Value)
+        // 점수 기준으로 정렬
+        var topCannons = gameState.Cannons
+            .OrderByDescending(c => c.Score)
             .Take(10);
 
         int rank = 1;
-        foreach (var kv in topCannons)
+        foreach (var cannon in topCannons)
         {
-            if (kv.Value == 0) continue;
-
-            var cannonColor = gameState.Cannons[kv.Key].Color;
+            int territoryCount = stats[cannon.Id];
+            
             var color = new Color(
-                (int)(cannonColor.X * 255),
-                (int)(cannonColor.Y * 255),
-                (int)(cannonColor.Z * 255),
+                (int)(cannon.Color.X * 255),
+                (int)(cannon.Color.Y * 255),
+                (int)(cannon.Color.Z * 255),
                 255
             );
 
             // 색상 박스
             Raylib.DrawRectangle(uiX, uiY, 15, 15, color);
             
-            // 텍스트
-            Raylib.DrawText($"{rank}. #{kv.Key}: {kv.Value}", uiX + 20, uiY, 16, Color.White);
+            // 텍스트: 랭킹, ID, 영역 수, 점수
+            Raylib.DrawText($"{rank}. #{cannon.Id}: {territoryCount} / {cannon.Score}점", uiX + 20, uiY, 16, Color.White);
             uiY += 22;
             rank++;
         }
